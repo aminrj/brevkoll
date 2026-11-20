@@ -209,7 +209,7 @@ Runnable: `LLM_PROVIDER=openai_compat` calls the configured local endpoint.
 
 Runnable: the page works on a phone against the deployed container.
 
-- [ ] Files: `templates/index.html`, `static/htmx.min.js` (vendored), `routes.py` (`GET /`, `/static`), `Dockerfile`. (All done except `htmx.min.js`: I could not download it, see notes.)
+- [x] Files: `templates/index.html`, `static/htmx.min.js` (vendored), `routes.py` (`GET /`, `/static`), `Dockerfile`. (`htmx.min.js` was added by the human in a8068e8; the earlier blocker is resolved.)
 - [x] Types and signatures:
   ```python
   @router.get("/") def index(request: Request) -> HTMLResponse: ...
@@ -294,7 +294,7 @@ Runnable: the page works on a phone against the deployed container.
 - Tests were written first and failed on collection (no `OpenAICompatLLM`), then passed. Not run against a real model server.
 
 ### Phase 6
-- BLOCKER: `src/app/static/htmx.min.js` (htmx 2.0.4) is NOT in the commit. The sandbox denied the download (`curl` to unpkg) and I will not hand-write or guess a copy. The human must add the real file, e.g. `curl -o src/app/static/htmx.min.js https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js`, and check its hash. Until then the page still works as a plain form post (the form has `action="/ui/decode"`), but shows only the bare result fragment. No test asserts the file exists.
+- RESOLVED in a8068e8 (htmx 2.0.4 vendored, integrity verified). Original note: `src/app/static/htmx.min.js` (htmx 2.0.4) is NOT in the commit. The sandbox denied the download (`curl` to unpkg) and I will not hand-write or guess a copy. The human must add the real file, e.g. `curl -o src/app/static/htmx.min.js https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js`, and check its hash. Until then the page still works as a plain form post (the form has `action="/ui/decode"`), but shows only the bare result fragment. No test asserts the file exists.
 - `/ui/decode` shares the rate limit and body-size guard with `/api/decode` (the middleware covers both paths). Errors on `/ui/decode` render a small HTML error fragment with the real status code; the page's `htmx-config` meta tag makes htmx swap non-2xx responses, so errors show up without JavaScript of our own.
 - `/static` is a `StaticFiles` mount on the app, so it is not in the router route set. The route allowlist test now expects `/`, `/healthz`, `/api/decode`, `/ui/decode` and still checks 404 for the docs paths and an unknown static file.
 - The `.ics` is a `data:text/calendar` link built with Jinja's `urlencode`; no new route. Some mobile browsers handle `data:` downloads poorly; check on a phone.
