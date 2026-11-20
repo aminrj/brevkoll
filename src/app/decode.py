@@ -1,10 +1,12 @@
 import logging
 from collections.abc import Callable
-from datetime import date
+from datetime import date, datetime, time
 from typing import Protocol
 
 from pydantic import BaseModel
 
+from app.dates import find_dates
+from app.ics import build_ics
 from app.llm import LLMClient, parse_model_output
 from app.prompt import build_prompt
 from app.redact import redact
@@ -14,7 +16,6 @@ log = logging.getLogger("app.decode")
 
 MAX_TOKENS = 600
 MODEL_TIMEOUT_S = 30.0
-EMPTY_ICS = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//brevkoll//EN\r\nEND:VCALENDAR\r\n"
 
 
 class DateItem(BaseModel):
@@ -47,4 +48,8 @@ def decode_letter(
     raw = llm.complete(prompt, max_tokens=MAX_TOKENS, timeout=MODEL_TIMEOUT_S)
     output = parse_model_output(raw)
     log.info("decoded kind=%s ocr_chars=%d actions=%d", kind, len(text), len(output.actions))
-    return DecodeResult(summary=output.summary, actions=output.actions, dates=[], ics=EMPTY_ICS)
+    today = clock()
+    found = find_dates(text, today)  # dates come from code, never from the model
+    ics = build_ics(found, output.summary, output.actions, datetime.combine(today, time.min))
+    dates = [DateItem(date=f.date.isoformat(), description=f.context) for f in found]
+    return DecodeResult(summary=output.summary, actions=output.actions, dates=dates, ics=ics)

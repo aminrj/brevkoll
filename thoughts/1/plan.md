@@ -128,8 +128,8 @@ Runnable: the fixture PNG goes through Tesseract and the fake LLM, and the respo
 
 Runnable: the fixture letter text yields `2026-12-04` and `2026-12-11`, and `ics` has a `DTSTART` for `20261204`, even when the model returns no dates.
 
-- [ ] Files: `dates.py`, `ics.py`, `decode.py` (edit).
-- [ ] Types and signatures:
+- [x] Files: `dates.py`, `ics.py`, `decode.py` (edit).
+- [x] Types and signatures:
   ```python
   class FoundDate(BaseModel):
       date: date
@@ -149,13 +149,13 @@ Runnable: the fixture letter text yields `2026-12-04` and `2026-12-11`, and `ics
   ) -> str: ...  # RFC 5545: backslash, semicolon, comma, newline; strips CR and control chars
   ```
   Formats: `2026-12-04`, `4 december 2026`, `4 dec`, `4/12` (A4 rule), and Swedish month names. Every event is an all-day event (`DTSTART;VALUE=DATE:20261204`) with a `UID` made from a hash, lines folded at 75 octets, and CRLF line endings. `DateItem.description` is the letter's own wording and never comes from the model. Dates are parsed from the OCR text before redaction. Redaction does not change dates, but a test checks that a phone number's digits do not parse as a date.
-- [ ] Tests to add (and why each fails today):
+- [x] Tests to add (and why each fails today):
   - `tests/unit/test_dates.py`: table of formats, `2026-02-30` rejected, a year-less date resolves per A4 using an injected clock, a phone and a personnummer produce no dates. Fails: no module.
   - `tests/unit/test_ics.py`: a valid VCALENDAR with `DTSTART;VALUE=DATE:20261204`; an action containing `\r\nBEGIN:VEVENT` creates no second VEVENT; commas and semicolons are escaped. Fails: no module.
   - `tests/unit/test_decode_dates.py`: with `FAKE_LLM_RESPONSE` returning a summary that claims other dates, or no dates at all, `dates` and `ics` hold only the code-parsed dates (AC2, AC3, LLM01).
-- [ ] Automated verification: same command as Phase 1.
-- [ ] Manual verification: POST a text-injected letter via the unit-test OCR and import the `.ics` into a calendar app.
-- [ ] Threat-model controls implemented: LLM05 (date parsing and ICS injection), LLM01 (dates from code only), AC2, AC3.
+- [x] Automated verification: same command as Phase 1.
+- [ ] Manual verification (not run; covered by `test_decode_dates.py`, left for the human): POST a text-injected letter via the unit-test OCR and import the `.ics` into a calendar app.
+- [x] Threat-model controls implemented: LLM05 (date parsing and ICS injection), LLM01 (dates from code only), AC2, AC3.
 
 ## Phase 4: Abuse limits (rate limit, trusted proxies, daily budget)
 
@@ -267,6 +267,14 @@ Runnable: the page works on a phone against the deployed container.
 - The Tesseract integration test generates its PNG with Pillow and was skipped here (binary absent). CI must confirm it.
 - Tests were written first and failed on collection (no `app.ocr`), then passed.
 - Dockerfile installs `tesseract-ocr`, `tesseract-ocr-swe`, `poppler-utils`. Docker build not run.
+
+### Phase 3
+- Dates match Swedish month names and abbreviations (`dec`, `sept`, `okt`...), plus `4:e` and `d/m/yyyy`. ISO dates need a 20xx year, so phone fragments like `0701-23-45` never parse.
+- `FoundDate.context` is the redacted, whitespace-collapsed line holding the date, cut to 120 chars around the wording. The whole line is redacted before cutting, so an identifier cannot be half-cut. Dates are still found on the unredacted text, as planned.
+- `decode_letter` has only a `date` clock, so `DTSTAMP` is midnight of that date, not the current time.
+- Each ICS event has `SUMMARY` = the letter's wording and `DESCRIPTION` = model summary and actions (escaped). Model text never feeds a date.
+- Two Phase 1 assertions that pinned `dates == []` were updated. The year-less "11 december" in the shared fixture depends on the real clock, so the API test checks only the count and the explicit ISO date.
+- Tests were written first and failed on collection (no `app.dates`), then passed. Two ICS tests were first too strict (they counted `BEGIN:VEVENT` inside an escaped text line) and now count logical lines.
 
 ## Decisions (owner)
 
