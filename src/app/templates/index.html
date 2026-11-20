@@ -12,6 +12,8 @@
   <main>
     <h1>brevkoll</h1>
     <p>Photograph or upload a letter from school. You get a short summary, what to do, and the dates.</p>
+    {# FastAPI with Jinja, not Django: no cookies, no session, no state, so nothing for a forged request to act on (threat model, Web: CSRF). #}
+    {# nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token #}
     <form hx-post="/ui/decode" hx-target="#result" hx-encoding="multipart/form-data"
           hx-indicator="#busy" action="/ui/decode" method="post" enctype="multipart/form-data">
       <label for="file">Letter (photo, PNG, JPEG or PDF, up to 10 MB)</label>
