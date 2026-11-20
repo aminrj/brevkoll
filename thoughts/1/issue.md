@@ -20,3 +20,7 @@ I updated the threat-model file.
 ## Comment by amine (2026-11-20T17:00:20Z)
 
 /go minutes=2
+
+## Comment by amine (2026-11-20T17:02:52Z)
+
+/go minutes=1
