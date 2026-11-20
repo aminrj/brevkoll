@@ -1,12 +1,70 @@
-from fastapi import FastAPI
+import os
+from collections.abc import Awaitable, Callable
+from datetime import date
+
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse, Response
+
+from app.config import ConfigError, Settings, load_settings
+from app.decode import OcrEngine, UnwiredOcr
+from app.errors import AppError, InvalidRequest, TooLarge
+from app.llm import FakeLLM, LLMClient
+from app.routes import build_router
+from app.upload import MAX_BYTES
+
+_BODY_SLACK = 64 * 1024  # multipart overhead on top of the file limit
 
 
-def create_app() -> FastAPI:
-    app = FastAPI(title="app", docs_url=None, redoc_url=None)
+def _error(status: int, message: str) -> JSONResponse:
+    return JSONResponse({"error": message}, status_code=status)
 
-    @app.get("/healthz")
-    def healthz() -> dict[str, str]:
-        return {"status": "ok"}
+
+def _build_llm(settings: Settings) -> LLMClient:
+    if settings.llm_provider == "fake":
+        if settings.app_env == "prod":
+            raise ConfigError("LLM_PROVIDER=fake is not allowed when APP_ENV=prod")
+        return FakeLLM(settings.fake_llm_log, settings.fake_llm_response)
+    raise ConfigError("Unknown LLM_PROVIDER")
+
+
+def create_app(
+    *,
+    ocr: OcrEngine | None = None,
+    llm: LLMClient | None = None,
+    clock: Callable[[], date] | None = None,
+) -> FastAPI:
+    settings = load_settings(os.environ)
+    llm_client = llm if llm is not None else _build_llm(settings)
+    app = FastAPI(title="app", docs_url=None, redoc_url=None, openapi_url=None)
+    app.include_router(
+        build_router(
+            ocr=ocr if ocr is not None else UnwiredOcr(),
+            llm=llm_client,
+            clock=clock if clock is not None else date.today,
+        )
+    )
+
+    @app.middleware("http")
+    async def limit_body(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        declared = request.headers.get("content-length", "")
+        if declared.isdigit() and int(declared) > MAX_BYTES + _BODY_SLACK:
+            return _error(TooLarge.status_code, TooLarge.message)
+        return await call_next(request)
+
+    @app.exception_handler(AppError)
+    async def app_error(request: Request, exc: AppError) -> JSONResponse:
+        return _error(exc.status_code, exc.message)
+
+    @app.exception_handler(RequestValidationError)
+    async def invalid(request: Request, exc: RequestValidationError) -> JSONResponse:
+        return _error(InvalidRequest.status_code, InvalidRequest.message)
+
+    @app.exception_handler(Exception)
+    async def unexpected(request: Request, exc: Exception) -> JSONResponse:
+        return _error(500, "Internal error")
 
     return app
 

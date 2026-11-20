@@ -21,8 +21,8 @@ Inputs: `spec.md`, `threat-model.md`, `research.md`. I did not read `tests/holdo
 
 Runnable end to end: tests POST a PNG, an injected OCR returns text, the fake LLM answers, and the response is the full JSON shape. The default OCR is not wired in this phase, so the real app returns 502 until Phase 2.
 
-- [ ] Files: `config.py`, `errors.py`, `upload.py`, `redact.py`, `prompt.py`, `llm.py`, `decode.py`, `routes.py`, `main.py` (edit), tests below.
-- [ ] Types and signatures:
+- [x] Files: `config.py`, `errors.py`, `upload.py`, `redact.py`, `prompt.py`, `llm.py`, `decode.py`, `routes.py`, `main.py` (edit), tests below.
+- [x] Types and signatures:
   ```python
   # config.py
   class Settings(BaseModel):  # frozen
@@ -72,7 +72,7 @@ Runnable end to end: tests POST a PNG, an injected OCR returns text, the fake LL
                  clock: Callable[[], date] | None = None) -> FastAPI: ...
   ```
   Phase 1 returns `dates=[]` and `ics` as an empty but valid VCALENDAR. `FakeLLM` writes `{"payload": <all strings sent, concatenated>}` as one JSON line per call, and its default response is the contract default. The module-level `app = create_app()` stays, because the Dockerfile uses it.
-- [ ] Tests to add (and why each fails today):
+- [x] Tests to add (and why each fails today):
   - `tests/unit/test_redact.py`: table of forms (`-`, `+`, no separator, 10 and 12 digit personnummer and samordningsnummer, `+46` and `07x` phones, plus-addressed emails). Fails: no `redact`.
   - `tests/unit/test_prompt.py`: OCR text appears only inside the delimiters, and a letter containing the delimiter cannot close the block. Input is capped. Fails: no module.
   - `tests/unit/test_llm_output.py`: invalid JSON, an extra field and an oversize string each raise `BadModelOutput`. Fails: no module.
@@ -81,9 +81,9 @@ Runnable end to end: tests POST a PNG, an injected OCR returns text, the fake LL
   - `tests/unit/test_no_files.py`: `APP_DATA_DIR` and the temp dir are empty after success, a 415, and a model error (AC5 and the storage control).
   - `tests/unit/test_logging.py`: caplog during a decode contains no letter text, OCR text or model output.
   - `tests/unit/test_config.py`: `create_app()` reads env at creation time. `LLM_PROVIDER=fake` with `APP_ENV=prod` raises.
-- [ ] Automated verification: `uv run ruff check . && uv run ruff format --check . && uv run pyright && uv run pytest`
-- [ ] Manual verification: `LLM_PROVIDER=fake uv run fastapi dev src/app/main.py`, then `curl` a PNG. Expect 502 (no OCR yet) and `{"error": ...}` with no trace.
-- [ ] Threat-model controls implemented: LLM01 (prompt block, schema), LLM02 (redaction, logging, storage), LLM05 (schema validation and 502), LLM06, LLM07, upload handling (magic bytes, filename never used), language allowlist, CSRF headers, route allowlist, fake-provider guard, AC1, AC4, AC5, AC6, AC7.
+- [x] Automated verification: `uv run ruff check . && uv run ruff format --check . && uv run pyright && uv run pytest`
+- [ ] Manual verification: `LLM_PROVIDER=fake uv run fastapi dev src/app/main.py`, then `curl` a PNG. Expect 502 (no OCR yet) and `{"error": ...}` with no trace. (Not run live; covered by `test_default_ocr_unwired_gives_generic_502`. Left unticked for the human.)
+- [x] Threat-model controls implemented: LLM01 (prompt block, schema), LLM02 (redaction, logging, storage), LLM05 (schema validation and 502), LLM06, LLM07, upload handling (magic bytes, filename never used), language allowlist, CSRF headers, route allowlist, fake-provider guard, AC1, AC4, AC5, AC6, AC7.
 
 ## Phase 2: Real OCR for images and PDFs with resource limits
 
@@ -218,6 +218,16 @@ Runnable: the page works on a phone against the deployed container.
 - Phase 1 leaves the default OCR unwired, so the deployed app is not useful until Phase 2.
 
 ## Notes from implementation
+
+### Phase 1
+- `OcrFailed` lives in `errors.py` (not `ocr.py`) so the unwired default OCR can raise it. Phase 2 should import it from there.
+- Default OCR is `UnwiredOcr` in `decode.py`; it raises `OcrFailed` (502). Phase 2 replaces it.
+- Body-size guard: a middleware rejects a declared `Content-Length` above 10 MB + 64 KB with 413 before parsing. Chunked uploads without `Content-Length` are still fully parsed by Starlette and then rejected by `read_limited`. The plan's "stream with a byte counter" is only partly met.
+- `/openapi.json` is disabled too, so the route set is exactly `/healthz` and `/api/decode`. The allowlist test checks the router's routes plus 404s for `/docs`, `/openapi.json` and others, because FastAPI nests included routers.
+- An empty `language` form value counts as missing and defaults to `en`.
+- A 10-digit mobile number with no separators (`0701234567`) is redacted as `[PERSONNUMMER]`, not `[PHONE]`. The digits are removed either way.
+- Tests were written after the code in this session, not before; each new module had no prior tests, so they would all fail without it, but I did not run a red step.
+- Running `ruff format .` reformatted `tests/holdout/test_acceptance.py` and the code blocks in this plan. I restored the plan by hand. I could not restore the holdout file (`git checkout` was denied). It is NOT in my commit; the human should run `git checkout -- tests/holdout/test_acceptance.py`.
 
 ## Decisions (owner)
 
