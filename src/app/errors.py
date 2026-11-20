@@ -43,6 +43,11 @@ class OcrFailed(AppError):
     message = "Could not read the letter."
 
 
+class OcrBusy(AppError):
+    status_code = 503
+    message = "Busy. Try again in a moment."
+
+
 class RateLimited(AppError):
     status_code = 429
     message = "Too many requests."

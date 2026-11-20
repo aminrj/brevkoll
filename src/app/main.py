@@ -7,9 +7,10 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
 
 from app.config import ConfigError, Settings, load_settings
-from app.decode import OcrEngine, UnwiredOcr
+from app.decode import OcrEngine
 from app.errors import AppError, InvalidRequest, TooLarge
 from app.llm import FakeLLM, LLMClient
+from app.ocr import TesseractOcr
 from app.routes import build_router
 from app.upload import MAX_BYTES
 
@@ -39,7 +40,7 @@ def create_app(
     app = FastAPI(title="app", docs_url=None, redoc_url=None, openapi_url=None)
     app.include_router(
         build_router(
-            ocr=ocr if ocr is not None else UnwiredOcr(),
+            ocr=ocr if ocr is not None else TesseractOcr(concurrency=settings.ocr_concurrency),
             llm=llm_client,
             clock=clock if clock is not None else date.today,
         )

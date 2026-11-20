@@ -18,6 +18,7 @@ class Settings(BaseModel):
     app_data_dir: Path
     rate_limit_per_minute: int
     daily_model_call_budget: int
+    ocr_concurrency: int
     trusted_proxies: tuple[str, ...]
     fake_llm_log: Path | None
     fake_llm_response: str | None
@@ -44,6 +45,7 @@ def load_settings(env: Mapping[str, str]) -> Settings:
         app_data_dir=Path(env.get("APP_DATA_DIR", "data")),
         rate_limit_per_minute=_int(env, "RATE_LIMIT_PER_MINUTE", 10),
         daily_model_call_budget=_int(env, "DAILY_MODEL_CALL_BUDGET", 200),
+        ocr_concurrency=_int(env, "OCR_CONCURRENCY", 2),
         trusted_proxies=proxies,
         fake_llm_log=Path(log) if log else None,
         fake_llm_response=env.get("FAKE_LLM_RESPONSE"),

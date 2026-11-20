@@ -89,8 +89,8 @@ Runnable end to end: tests POST a PNG, an injected OCR returns text, the fake LL
 
 Runnable: the fixture PNG goes through Tesseract and the fake LLM, and the response has a summary.
 
-- [ ] Files: `ocr.py`, `main.py` (default wiring), `Dockerfile` (apt packages), `pyproject.toml` and `uv.lock` (Pillow).
-- [ ] Types and signatures:
+- [x] Files: `ocr.py`, `main.py` (default wiring), `Dockerfile` (apt packages), `pyproject.toml` and `uv.lock` (Pillow).
+- [x] Types and signatures:
   ```python
   MAX_PIXELS = 25_000_000
   MAX_PDF_PAGES = 3
@@ -115,14 +115,14 @@ Runnable: the fixture PNG goes through Tesseract and the fake LLM, and the respo
   class OcrFailed(AppError): ...  # 502 generic
   ```
   It uses `tempfile.TemporaryDirectory` as a context manager, generated names, `tesseract <in> stdout -l swe`, and `pdftoppm -r 200 -l 3` for PDFs. All calls use list args, a timeout, and no shell. A module-level `threading.BoundedSemaphore` limits concurrent OCR jobs (the setting `OCR_CONCURRENCY`, default 2). Excess requests wait up to a short time, then get 503.
-- [ ] Tests to add (and why each fails today):
+- [x] Tests to add (and why each fails today):
   - `tests/unit/test_ocr.py` with a recording `run`: arguments are lists, `shell` is not set, a timeout is passed, and the temp dir is gone after success and after a raised `CalledProcessError` or `TimeoutExpired`. Fails: no `TesseractOcr`.
   - A 4-page PDF is rejected. A 30 MP image header is rejected before OCR. Fails: no checks.
   - The OCR timeout gives a generic 502.
   - `tests/integration/test_tesseract.py`: skipped only via `pytest.importorskip`-style detection of the missing binary (`shutil.which`). If it is absent the test is reported as skipped with a reason. It runs in CI, where Tesseract exists. It OCRs the fixture, which is a read-only holdout file. I will NOT read it, so I will generate a small PNG with Pillow instead. This test needs the human's confirmation (see unsure).
-- [ ] Automated verification: same command as Phase 1.
-- [ ] Manual verification (needs `apt install tesseract-ocr tesseract-ocr-swe poppler-utils`): POST a photo of a Swedish letter and check the summary. Check that `ls $APP_DATA_DIR` and `/tmp` show no leftover files.
-- [ ] Threat-model controls implemented: LLM10 (pixel cap, page cap, timeouts, concurrency), upload handling (list args, temp cleanup), AC5 with real OCR.
+- [x] Automated verification: same command as Phase 1.
+- [ ] Manual verification (not run, no tesseract in sandbox; needs `apt install tesseract-ocr tesseract-ocr-swe poppler-utils`): POST a photo of a Swedish letter and check the summary. Check that `ls $APP_DATA_DIR` and `/tmp` show no leftover files.
+- [x] Threat-model controls implemented: LLM10 (pixel cap, page cap, timeouts, concurrency), upload handling (list args, temp cleanup), AC5 with real OCR.
 
 ## Phase 3: Date parser and ICS builder
 
@@ -257,6 +257,16 @@ Runnable: the page works on a phone against the deployed container.
 - A 10-digit mobile number with no separators (`0701234567`) is redacted as `[PERSONNUMMER]`, not `[PHONE]`. The digits are removed either way.
 - Tests were written after the code in this session, not before; each new module had no prior tests, so they would all fail without it, but I did not run a red step.
 - Running `ruff format .` reformatted `tests/holdout/test_acceptance.py` and the code blocks in this plan. I restored the plan by hand. I could not restore the holdout file (`git checkout` was denied). It is NOT in my commit; the human should run `git checkout -- tests/holdout/test_acceptance.py`.
+
+### Phase 2
+- `OcrBusy` (503) added to `errors.py`; the semaphore is per `TesseractOcr` instance (not module level), so each `create_app()` gets a fresh one. `OCR_CONCURRENCY` is a new `Settings.ocr_concurrency` field.
+- `TesseractOcr.__init__` also takes `which` and `wait_s` for injection. `pdf_page_count(path, run, pdfinfo)` takes a file path, not bytes, because `pdfinfo` needs a file.
+- No `# noqa` was needed: ruff S603 fires only on direct `subprocess.*` calls, and the code calls an injected `run`.
+- A corrupt or unreadable image gives `OcrFailed` (502) from the Pillow header check. `UnwiredOcr` is removed; its test was renamed.
+- Not covered: pixel size of pdftoppm output for PDFs with a huge page box (page count and timeout are the only limits).
+- The Tesseract integration test generates its PNG with Pillow and was skipped here (binary absent). CI must confirm it.
+- Tests were written first and failed on collection (no `app.ocr`), then passed.
+- Dockerfile installs `tesseract-ocr`, `tesseract-ocr-swe`, `poppler-utils`. Docker build not run.
 
 ## Decisions (owner)
 

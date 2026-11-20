@@ -106,7 +106,7 @@ def test_unexpected_error_has_no_trace(env: Env) -> None:
     assert r.json() == {"error": "Internal error"}
 
 
-def test_default_ocr_unwired_gives_generic_502(env: Env) -> None:
+def test_default_ocr_with_corrupt_image_gives_generic_502(env: Env) -> None:
     r = post(TestClient(create_app(), raise_server_exceptions=False))
     assert r.status_code == 502
     assert set(r.json()) == {"error"}

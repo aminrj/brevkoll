@@ -5,7 +5,6 @@ from typing import Protocol
 
 from pydantic import BaseModel
 
-from app.errors import OcrFailed
 from app.llm import LLMClient, parse_model_output
 from app.prompt import build_prompt
 from app.redact import redact
@@ -32,13 +31,6 @@ class DecodeResult(BaseModel):
 
 class OcrEngine(Protocol):
     def extract(self, data: bytes, kind: str) -> str: ...
-
-
-class UnwiredOcr:
-    """Default until real OCR is wired in (phase 2)."""
-
-    def extract(self, data: bytes, kind: str) -> str:
-        raise OcrFailed()
 
 
 def decode_letter(

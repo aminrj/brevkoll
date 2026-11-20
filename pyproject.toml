@@ -5,6 +5,7 @@ description = "Built through the secure AI software factory"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi[standard]>=0.115",
+    "pillow>=13.0.0",
 ]
 
 [dependency-groups]
