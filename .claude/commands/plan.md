@@ -15,6 +15,12 @@ Write `thoughts/$ARGUMENTS/plan.md` using `.factory/templates/plan.md`:
   The human's acceptance tests depend on it.
 - Name every new dependency and justify it. Note any system package (apt) the app needs; the human adds it to CI.
 - Keep phases small enough for one session.
+- Fill "Architecture contracts" with app-specific import rules in `.importlinter` syntax. Do not edit `.importlinter`.
+- Write one ADR per significant decision in `docs/decisions/NNNN-title.md` using `docs/decisions/0000-template.md`,
+  and list them in the plan. Later reviews audit the code against them.
+- Fill the "Docs" section: which phase updates which part of `README.md` and `AGENTS.md`. The README must describe the app
+  (what it does, how to run it, env vars, limits), never the template. If either file still has template text or the
+  `<One paragraph written at Gate 1...>` placeholder, make the first phase replace it (start the README from `.factory/templates/readme-app.md`).
 - Add "What I am unsure about".
 - Leave `Status: draft` at the top. Only the human sets `Status: approved`.
 

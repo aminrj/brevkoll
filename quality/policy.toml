@@ -1,0 +1,75 @@
+# Quality policy. Human-owned: agents cannot edit quality/ (deny rules + guard script).
+# direction: "lower" or "higher" is better. tolerance: allowed slack versus the baseline.
+# mode: "enforce" fails the `quality` job, "warn" only reports.
+
+[metrics.max_complexity]
+direction = "lower"
+tolerance = 0
+mode = "enforce"
+
+[metrics.mean_complexity]
+direction = "lower"
+tolerance = 0.5
+mode = "enforce"
+
+[metrics.longest_function_lines]
+direction = "lower"
+tolerance = 0
+mode = "enforce"
+
+[metrics.longest_file_lines]
+direction = "lower"
+tolerance = 0
+mode = "enforce"
+
+[metrics.type_ignore_count]
+direction = "lower"
+tolerance = 0
+mode = "enforce"
+
+[metrics.cast_count]
+direction = "lower"
+tolerance = 0
+mode = "enforce"
+
+[metrics.bare_except_count]
+direction = "lower"
+tolerance = 0
+mode = "enforce"
+
+[metrics.except_exception_count]
+direction = "lower"
+tolerance = 0
+mode = "enforce"
+
+[metrics.noqa_count]
+direction = "lower"
+tolerance = 0
+mode = "enforce"
+
+[metrics.runtime_dependency_count]
+direction = "lower"
+tolerance = 0
+mode = "warn"          # plans may add named dependencies; a human reviews them
+
+[metrics.test_to_source_ratio]
+direction = "higher"
+tolerance = 0.05
+mode = "enforce"
+
+[metrics.line_coverage_percent]
+direction = "higher"
+tolerance = 1.0
+mode = "enforce"
+
+[diff_coverage]
+floor_percent = 80     # coverage on lines changed in the PR
+mode = "enforce"
+
+[mutation]
+mode = "warn"          # switch to "enforce" after the first app (see README)
+target_percent = 60
+time_limit_minutes = 10
+
+[context]
+agents_md_max_lines = 150

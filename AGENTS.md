@@ -12,6 +12,8 @@ brevkoll decodes Swedish letters for parents who are still learning Swedish. A u
 - Types: `uv run pyright`
 - Tests: `uv run pytest` (runs tests/unit and tests/integration only)
 - Run locally: `uv run fastapi dev src/app/main.py`
+- Quality guards (complexity ratchet, changed-line coverage, import contracts, traceability, context size): `bash scripts/quality.sh origin/main`.
+  `quality/` and `.importlinter` are human-owned. If a guard is wrong, stop and say so; do not edit around it.
 
 ## Workflow (mandatory)
 

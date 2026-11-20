@@ -1,0 +1,95 @@
+# Architecture contracts. Human-owned: agents propose changes in the plan ("Architecture contracts"),
+# the human commits this file after approving the plan.
+# Adopted for brevkoll from its real module graph (2026-11-20). Each contract names the mistake it prevents.
+[importlinter]
+root_package = app
+include_external_packages = True
+
+[importlinter:contract:layers]
+name = Layers: web entry points above the decode pipeline above the stages above the leaf helpers
+# Prevents a stage (ocr, llm, dates...) from reaching up into routes, UI or the decode orchestration.
+type = layers
+layers =
+    app.main
+    app.routes
+    app.ui
+    app.decode | app.limits
+    app.ocr | app.llm | app.prompt | app.ics | app.upload
+    app.dates
+    app.redact
+    app.errors | app.config
+
+[importlinter:contract:pipeline-without-web]
+name = The decode pipeline does not import the web framework
+# Prevents request or response objects leaking into OCR, redaction, dates, ICS or the model client,
+# which are tested without the web stack.
+type = forbidden
+source_modules =
+    app.decode
+    app.ocr
+    app.llm
+    app.limits
+    app.prompt
+    app.dates
+    app.ics
+    app.redact
+    app.errors
+    app.config
+forbidden_modules =
+    fastapi
+    starlette
+    jinja2
+# Direct imports only. Known indirect path: app.decode -> app.upload -> fastapi (UploadFile). app.upload mixes web
+# reading (read_limited) with the pipeline's sniff_kind; splitting it would make this contract strict. Tracked in the PR.
+allow_indirect_imports = True
+
+[importlinter:contract:http-client]
+name = Only app.llm and app.main import the HTTP client
+# Prevents a second outbound network path (SSRF, threat model "Web: SSRF"). The model endpoint is the only one.
+type = forbidden
+source_modules =
+    app
+forbidden_modules =
+    httpx
+allow_indirect_imports = True
+ignore_imports =
+    app.llm -> httpx
+    app.main -> httpx
+
+[importlinter:contract:image-parser]
+name = Only app.ocr imports the image library
+# Keeps untrusted image parsing in one place, next to its size and pixel checks.
+type = forbidden
+source_modules =
+    app
+forbidden_modules =
+    PIL
+allow_indirect_imports = True
+ignore_imports =
+    app.ocr -> PIL
+
+[importlinter:contract:model-clients]
+name = No vendor model SDKs
+# The model is reached only through app.llm over plain HTTP (threat model LLM06, no tools, no agency).
+type = forbidden
+source_modules =
+    app
+forbidden_modules =
+    anthropic
+    openai
+    ollama
+    litellm
+    google
+    mistralai
+    cohere
+    langchain
+    langchain_core
+    llama_index
+
+[importlinter:contract:no-tests]
+name = Nothing imports tests
+type = forbidden
+source_modules =
+    app
+forbidden_modules =
+    tests
