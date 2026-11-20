@@ -119,7 +119,9 @@ def test_invalid_model_output_is_rejected(
 
 # AC7
 def test_rejects_wrong_type(env: Path) -> None:
-    response = post_letter(make_client(), content=b"#!/bin/sh\necho hi\n", mime="text/x-shellscript")
+    response = post_letter(
+        make_client(), content=b"#!/bin/sh\necho hi\n", mime="text/x-shellscript"
+    )
     assert response.status_code == 415
 
 

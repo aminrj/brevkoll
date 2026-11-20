@@ -92,14 +92,27 @@ Runnable: the fixture PNG goes through Tesseract and the fake LLM, and the respo
 - [ ] Files: `ocr.py`, `main.py` (default wiring), `Dockerfile` (apt packages), `pyproject.toml` and `uv.lock` (Pillow).
 - [ ] Types and signatures:
   ```python
-  MAX_PIXELS = 25_000_000; MAX_PDF_PAGES = 3; SUBPROCESS_TIMEOUT_S = 30
+  MAX_PIXELS = 25_000_000
+  MAX_PDF_PAGES = 3
+  SUBPROCESS_TIMEOUT_S = 30
+
+
   class TesseractOcr:  # implements OcrEngine
-      def __init__(self, run: Callable[..., subprocess.CompletedProcess[bytes]] = subprocess.run,
-                   tmp_root: Path | None = None) -> None: ...
+      def __init__(
+          self,
+          run: Callable[..., subprocess.CompletedProcess[bytes]] = subprocess.run,
+          tmp_root: Path | None = None,
+      ) -> None: ...
       def extract(self, data: bytes, kind: str) -> str: ...
-  def check_image_size(data: bytes) -> None: ...        # Pillow header only, raises TooLarge-class AppError (413)
+
+
+  def check_image_size(
+      data: bytes,
+  ) -> None: ...  # Pillow header only, raises TooLarge-class AppError (413)
   def pdf_page_count(data: bytes, run: ...) -> int: ...  # `pdfinfo`, list args
-  class OcrFailed(AppError): ...                         # 502 generic
+
+
+  class OcrFailed(AppError): ...  # 502 generic
   ```
   It uses `tempfile.TemporaryDirectory` as a context manager, generated names, `tesseract <in> stdout -l swe`, and `pdftoppm -r 200 -l 3` for PDFs. All calls use list args, a timeout, and no shell. A module-level `threading.BoundedSemaphore` limits concurrent OCR jobs (the setting `OCR_CONCURRENCY`, default 2). Excess requests wait up to a short time, then get 503.
 - [ ] Tests to add (and why each fails today):
@@ -118,10 +131,22 @@ Runnable: the fixture letter text yields `2026-12-04` and `2026-12-11`, and `ics
 - [ ] Files: `dates.py`, `ics.py`, `decode.py` (edit).
 - [ ] Types and signatures:
   ```python
-  class FoundDate(BaseModel): date: date; context: str   # context = the original wording from the letter, whitespace-collapsed, max 120 chars
-  def find_dates(text: str, today: date) -> list[FoundDate]: ...  # sorted, de-duplicated, valid calendar dates only
-  def build_ics(dates: Sequence[FoundDate], summary: str, actions: Sequence[str], now: datetime) -> str: ...
-  def escape_text(value: str) -> str: ...  # RFC 5545: backslash, semicolon, comma, newline; strips CR and control chars
+  class FoundDate(BaseModel):
+      date: date
+      context: (
+          str  # context = the original wording from the letter, whitespace-collapsed, max 120 chars
+      )
+
+
+  def find_dates(
+      text: str, today: date
+  ) -> list[FoundDate]: ...  # sorted, de-duplicated, valid calendar dates only
+  def build_ics(
+      dates: Sequence[FoundDate], summary: str, actions: Sequence[str], now: datetime
+  ) -> str: ...
+  def escape_text(
+      value: str,
+  ) -> str: ...  # RFC 5545: backslash, semicolon, comma, newline; strips CR and control chars
   ```
   Formats: `2026-12-04`, `4 december 2026`, `4 dec`, `4/12` (A4 rule), and Swedish month names. Every event is an all-day event (`DTSTART;VALUE=DATE:20261204`) with a `UID` made from a hash, lines folded at 75 octets, and CRLF line endings. `DateItem.description` is the letter's own wording and never comes from the model. Dates are parsed from the OCR text before redaction. Redaction does not change dates, but a test checks that a phone number's digits do not parse as a date.
 - [ ] Tests to add (and why each fails today):
@@ -141,10 +166,14 @@ Runnable: the 4th request in a minute returns 429 with `RATE_LIMIT_PER_MINUTE=3`
   ```python
   class SlidingWindowLimiter:
       def __init__(self, per_minute: int, clock: Callable[[], float]) -> None: ...
-      def check(self, key: str) -> None: ...   # raises RateLimited
+      def check(self, key: str) -> None: ...  # raises RateLimited
+
+
   class DailyBudget:
       def __init__(self, limit: int, clock: Callable[[], datetime]) -> None: ...
-      def consume(self) -> None: ...           # raises BudgetExhausted; resets at local midnight
+      def consume(self) -> None: ...  # raises BudgetExhausted; resets at local midnight
+
+
   def client_ip(peer: str | None, forwarded_for: str | None, trusted: Sequence[str]) -> str: ...
   ```
   The rate limiter runs before the body is read. It prunes old keys so the dict stays bounded. The budget is consumed just before the model call.
