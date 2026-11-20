@@ -1,5 +1,5 @@
 {
-  "_note": "Baseline. Starting values are generous ceilings for a new app; the nightly job tightens them (never loosens). Agents must not edit this file.",
+  "_note": "Baseline measured on main (bd505ff) on 2026-11-20 without the Tesseract binary. The nightly job tightens it and never loosens it. Agents must not edit this file.",
   "metrics": {
     "bare_except_count": 0,
     "cast_count": 0,
