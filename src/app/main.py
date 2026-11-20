@@ -38,7 +38,8 @@ def _build_llm(settings: Settings) -> LLMClient:
         if not settings.llm_base_url or not settings.llm_model:
             raise ConfigError("LLM_BASE_URL and LLM_MODEL are required for openai_compat")
         http = httpx.Client(follow_redirects=False, trust_env=False)
-        return OpenAICompatLLM(settings.llm_base_url, settings.llm_model, http)
+        key = settings.llm_api_key.get_secret_value() if settings.llm_api_key else None
+        return OpenAICompatLLM(settings.llm_base_url, settings.llm_model, http, key)
     raise ConfigError("Unknown LLM_PROVIDER")
 
 
@@ -58,6 +59,8 @@ def create_app(
             ocr=ocr if ocr is not None else TesseractOcr(concurrency=settings.ocr_concurrency),
             llm=llm_client,
             clock=clock if clock is not None else date.today,
+            max_tokens=settings.model_max_tokens,
+            timeout=settings.model_timeout_s,
         )
     )
 

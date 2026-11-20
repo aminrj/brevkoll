@@ -7,21 +7,37 @@ from fastapi.responses import HTMLResponse
 from starlette.concurrency import run_in_threadpool
 
 from app.config import SUPPORTED_LANGUAGES
-from app.decode import DecodeResult, OcrEngine, decode_letter
+from app.decode import MAX_TOKENS, MODEL_TIMEOUT_S, DecodeResult, OcrEngine, decode_letter
 from app.errors import BadLanguage
 from app.llm import LLMClient
 from app.ui import render_index, render_result
 from app.upload import read_limited
 
 
-def build_router(*, ocr: OcrEngine, llm: LLMClient, clock: Callable[[], date]) -> APIRouter:
+def build_router(
+    *,
+    ocr: OcrEngine,
+    llm: LLMClient,
+    clock: Callable[[], date],
+    max_tokens: int = MAX_TOKENS,
+    timeout: float = MODEL_TIMEOUT_S,
+) -> APIRouter:
     router = APIRouter()
 
     async def run(file: UploadFile, language: str) -> DecodeResult:
         if language not in SUPPORTED_LANGUAGES:
             raise BadLanguage()
         data = await read_limited(file)
-        return await run_in_threadpool(decode_letter, data, language, ocr=ocr, llm=llm, clock=clock)
+        return await run_in_threadpool(
+            decode_letter,
+            data,
+            language,
+            ocr=ocr,
+            llm=llm,
+            clock=clock,
+            max_tokens=max_tokens,
+            timeout=timeout,
+        )
 
     @router.get("/healthz")
     def healthz() -> dict[str, str]:
