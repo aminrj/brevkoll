@@ -42,6 +42,9 @@ Run one worker only: the rate limit and the daily budget live in memory.
 |---|---|---|
 | `LLM_PROVIDER` | `fake` | `fake` (tests, dev) or `openai_compat`. `fake` is refused when `APP_ENV=prod`. |
 | `LLM_BASE_URL`, `LLM_MODEL` | none | Model endpoint and model name, required for `openai_compat`. |
+| `LLM_API_KEY` | none | Optional bearer key for the model endpoint. Read from the environment only, never logged or returned. |
+| `MODEL_TIMEOUT_S` | `30` | Seconds to wait for the model (1 to 600). Models that think before answering need 120 or more. |
+| `MODEL_MAX_TOKENS` | `600` | Token cap for one answer (50 to 8000). Thinking models count their reasoning against it, so raise it with the timeout. |
 | `APP_ENV` | `dev` | Set `prod` in deployments. |
 | `APP_DATA_DIR` | `data` | Scratch directory. It must be empty after every request. |
 | `RATE_LIMIT_PER_MINUTE` | `10` | Requests per minute per client IP. |
@@ -52,8 +55,6 @@ Run one worker only: the rate limit and the daily budget live in memory.
 
 ## Limits and what is not done
 
-- Model time is limited to 30 seconds and 600 tokens in the code. Models that think before answering can exceed that.
-- The model endpoint cannot send an API key yet.
 - OCR can misread characters in photos, for example an `@` in an email address. Check dates and addresses against the letter.
 - Names and street addresses are not redacted and can reach the model, so use a local model.
 - Year-less dates (`4/12`) resolve to the next occurrence and can pick the wrong year for letters read in January.

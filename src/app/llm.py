@@ -29,10 +29,13 @@ class FakeLLM:
 class OpenAICompatLLM:
     """Chat-completions client for a local server. No tools, no redirects."""
 
-    def __init__(self, base_url: str, model: str, http: httpx.Client) -> None:
+    def __init__(
+        self, base_url: str, model: str, http: httpx.Client, api_key: str | None = None
+    ) -> None:
         self._url = base_url.rstrip("/") + "/chat/completions"
         self._model = model
         self._http = http
+        self._headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
 
     def complete(self, prompt: str, *, max_tokens: int, timeout: float) -> str:
         body = {
@@ -42,7 +45,7 @@ class OpenAICompatLLM:
             "stream": False,
         }
         try:
-            response = self._http.post(self._url, json=body, timeout=timeout)
+            response = self._http.post(self._url, json=body, headers=self._headers, timeout=timeout)
             response.raise_for_status()
             return _extract_content(response.json())
         except (httpx.HTTPError, ValueError):

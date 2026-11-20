@@ -41,11 +41,13 @@ def decode_letter(
     ocr: OcrEngine,
     llm: LLMClient,
     clock: Callable[[], date],
+    max_tokens: int = MAX_TOKENS,
+    timeout: float = MODEL_TIMEOUT_S,
 ) -> DecodeResult:
     kind = sniff_kind(data)
     text = ocr.extract(data, kind)
     prompt = build_prompt(redact(text), language)  # also validates the language
-    raw = llm.complete(prompt, max_tokens=MAX_TOKENS, timeout=MODEL_TIMEOUT_S)
+    raw = llm.complete(prompt, max_tokens=max_tokens, timeout=timeout)
     output = parse_model_output(raw)
     log.info("decoded kind=%s ocr_chars=%d actions=%d", kind, len(text), len(output.actions))
     today = clock()
