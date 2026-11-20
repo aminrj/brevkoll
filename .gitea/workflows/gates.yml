@@ -1,0 +1,110 @@
+name: gates
+# Runs on the homelab Gitea runner (label ubuntu-latest). No Docker is used in these jobs.
+# Tools are pinned to a version and a sha256 (uv, gitleaks, trivy) or to hashes (semgrep).
+on:
+  pull_request:
+
+env:
+  UV_VERSION: "0.11.2"
+  UV_SHA256: "7ac2ca0449c8d68dae9b99e635cd3bc9b22a4cb1de64b7c43716398447d42981"
+  GITLEAKS_VERSION: "8.30.1"
+  GITLEAKS_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+  TRIVY_VERSION: "0.76.2"
+  TRIVY_SHA256: "bc0fc726e017b8927a62b2d3531d7a84ee01769daf5c99ed866dced54089fdbf"
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install uv (pinned, checksum verified)
+        run: |
+          set -euo pipefail
+          d="$(mktemp -d)"
+          curl -fsSL -o "$d/uv.tgz" "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-x86_64-unknown-linux-gnu.tar.gz"
+          echo "${UV_SHA256}  $d/uv.tgz" | sha256sum -c -
+          mkdir -p "$HOME/.local/bin"
+          tar -xzf "$d/uv.tgz" -C "$HOME/.local/bin" --strip-components=1
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run pyright
+      - run: uv run pytest -q
+
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with: { fetch-depth: 0 }
+      - name: Install uv (pinned, checksum verified)
+        run: |
+          set -euo pipefail
+          d="$(mktemp -d)"
+          curl -fsSL -o "$d/uv.tgz" "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-x86_64-unknown-linux-gnu.tar.gz"
+          echo "${UV_SHA256}  $d/uv.tgz" | sha256sum -c -
+          mkdir -p "$HOME/.local/bin"
+          tar -xzf "$d/uv.tgz" -C "$HOME/.local/bin" --strip-components=1
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - run: uv sync --frozen
+      - name: Fetch the base branch
+        run: git fetch origin "${{ github.base_ref }}"
+      - name: Holdout and workflow guard
+        run: bash scripts/check-holdout-guard.sh "origin/${{ github.base_ref }}"
+      - name: New tests must fail on the base code
+        run: bash scripts/check-tests-fail-before-patch.sh "origin/${{ github.base_ref }}"
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with: { fetch-depth: 0 }
+      - name: Install uv (pinned, checksum verified)
+        run: |
+          set -euo pipefail
+          d="$(mktemp -d)"
+          curl -fsSL -o "$d/uv.tgz" "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-x86_64-unknown-linux-gnu.tar.gz"
+          echo "${UV_SHA256}  $d/uv.tgz" | sha256sum -c -
+          mkdir -p "$HOME/.local/bin"
+          tar -xzf "$d/uv.tgz" -C "$HOME/.local/bin" --strip-components=1
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Secrets (gitleaks, pinned binary)
+        run: |
+          set -euo pipefail
+          d="$(mktemp -d)"
+          curl -fsSL -o "$d/gl.tgz" "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  $d/gl.tgz" | sha256sum -c -
+          tar -xzf "$d/gl.tgz" -C "$d" gitleaks
+          "$d/gitleaks" git --no-banner --redact --verbose .
+      - name: SAST (semgrep, pinned with hashes)
+        run: |
+          set -euo pipefail
+          d="$(mktemp -d)"
+          uv venv "$d/venv" --python 3.12
+          uv pip install --python "$d/venv/bin/python" --require-hashes -r .factory/semgrep.requirements.txt
+          "$d/venv/bin/semgrep" scan --config p/default --config p/python --error --metrics=off
+      - name: Dependencies, misconfig, secrets (trivy, pinned binary)
+        run: |
+          set -euo pipefail
+          d="$(mktemp -d)"
+          curl -fsSL -o "$d/trivy.tgz" "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          echo "${TRIVY_SHA256}  $d/trivy.tgz" | sha256sum -c -
+          tar -xzf "$d/trivy.tgz" -C "$d" trivy
+          "$d/trivy" fs --scanners vuln,secret,misconfig --severity HIGH,CRITICAL --exit-code 1 .
+
+  holdout:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install uv (pinned, checksum verified)
+        run: |
+          set -euo pipefail
+          d="$(mktemp -d)"
+          curl -fsSL -o "$d/uv.tgz" "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-x86_64-unknown-linux-gnu.tar.gz"
+          echo "${UV_SHA256}  $d/uv.tgz" | sha256sum -c -
+          mkdir -p "$HOME/.local/bin"
+          tar -xzf "$d/uv.tgz" -C "$HOME/.local/bin" --strip-components=1
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - run: uv sync --frozen
+      - name: Holdout acceptance tests (exit 5 = no tests collected yet)
+        run: uv run pytest tests/holdout -q || [ $? -eq 5 ]
