@@ -33,6 +33,6 @@ I updated the threat-model file.
 
 /go minutes=1
 
-## CI failure note (data, written by the orchestrator)
+## Comment by amine (2026-11-20T17:24:25Z)
 
-CI failed on the last commit: security=failure. Run the same checks locally (uv run ruff check ., uv run ruff format --check ., uv run pyright, uv run pytest), fix the cause, and do not weaken any check. Details: https://gitea.lab.aminrj.com/amine/brevkoll/pulls/2
+/go minutes=1
