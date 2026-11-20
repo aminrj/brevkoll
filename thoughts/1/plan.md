@@ -1,5 +1,5 @@
 # Plan: #1 brevkoll v1, the letter decoder
-Status: draft
+Status: approved
 
 Inputs: `spec.md`, `threat-model.md`, `research.md`. I did not read `tests/holdout/`. The contract in the spec is followed exactly: `create_app()` reads env at creation time, `POST /api/decode` with fields `file` and `language`, the response shape, the `fake` provider seam, `APP_DATA_DIR`, and `RATE_LIMIT_PER_MINUTE`.
 
@@ -218,3 +218,13 @@ Runnable: the page works on a phone against the deployed container.
 - Phase 1 leaves the default OCR unwired, so the deployed app is not useful until Phase 2.
 
 ## Notes from implementation
+
+## Decisions (owner)
+
+- A1 to A7 accepted as written. Languages: `en`, `sv`, `ar`, `uk`.
+- Q1 model: local only, through `openai_compat` and the `LLM_BASE_URL` and `LLM_MODEL` env vars. No cloud provider in v1, so risk R1 stays contained. Phase 5 is not blocked: build it against the mock transport, and the real endpoint is configured at deploy time.
+- Q2: keep the inverted guard (`fake` refused only when `APP_ENV=prod`, default `dev`).
+- Ruff S603/S607: line-level `# noqa` with a reason on the subprocess lines only is accepted. No change to the ruff config.
+- Poppler is already installed in all three CI jobs. Tesseract integration test may generate its PNG with Pillow.
+- Vendored htmx version: 2.0.4.
+- Docker build is not run by the agent. Do not add a CI job for it.
