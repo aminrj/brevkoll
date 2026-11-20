@@ -3,6 +3,7 @@ import time
 from collections.abc import Awaitable, Callable
 from datetime import date, datetime
 
+import httpx
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
@@ -11,7 +12,7 @@ from app.config import ConfigError, Settings, load_settings
 from app.decode import OcrEngine
 from app.errors import AppError, InvalidRequest, RateLimited, TooLarge
 from app.limits import BudgetedLLM, DailyBudget, SlidingWindowLimiter, client_ip
-from app.llm import FakeLLM, LLMClient
+from app.llm import FakeLLM, LLMClient, OpenAICompatLLM
 from app.ocr import TesseractOcr
 from app.routes import build_router
 from app.upload import MAX_BYTES
@@ -28,6 +29,11 @@ def _build_llm(settings: Settings) -> LLMClient:
         if settings.app_env == "prod":
             raise ConfigError("LLM_PROVIDER=fake is not allowed when APP_ENV=prod")
         return FakeLLM(settings.fake_llm_log, settings.fake_llm_response)
+    if settings.llm_provider == "openai_compat":
+        if not settings.llm_base_url or not settings.llm_model:
+            raise ConfigError("LLM_BASE_URL and LLM_MODEL are required for openai_compat")
+        http = httpx.Client(follow_redirects=False, trust_env=False)
+        return OpenAICompatLLM(settings.llm_base_url, settings.llm_model, http)
     raise ConfigError("Unknown LLM_PROVIDER")
 
 

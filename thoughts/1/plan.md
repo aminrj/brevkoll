@@ -185,25 +185,25 @@ Runnable: the 4th request in a minute returns 429 with `RATE_LIMIT_PER_MINUTE=3`
 - [ ] Manual verification: run with `RATE_LIMIT_PER_MINUTE=3` and `for i in 1..4; do curl ...; done`. (Not run live; covered by `test_limits_api.py`. Left unticked for the human.)
 - [x] Threat-model controls implemented: LLM10 (rate limit, daily budget), rate-limit bypass, AC8.
 
-## Phase 5: Real model provider (BLOCKED on Q1)
+## Phase 5: Real model provider
 
 Runnable: `LLM_PROVIDER=openai_compat` calls the configured local endpoint.
 
-- [ ] Files: `llm.py` (add `OpenAICompatLLM`), `main.py` (provider selection), `pyproject.toml` (`httpx` moves from dev to runtime).
-- [ ] Types and signatures:
+- [x] Files: `llm.py` (add `OpenAICompatLLM`), `main.py` (provider selection), `pyproject.toml` (`httpx` moves from dev to runtime).
+- [x] Types and signatures:
   ```python
   class OpenAICompatLLM:  # implements LLMClient
       def __init__(self, base_url: str, model: str, http: httpx.Client) -> None: ...
       def complete(self, prompt: str, *, max_tokens: int, timeout: float) -> str: ...
   ```
   The URL comes from the environment only. There are no tools and no function calling in the request. It raises `ModelUnavailable` on timeout, non-2xx or a malformed envelope. An unknown `LLM_PROVIDER` fails at startup.
-- [ ] Tests to add (and why each fails today):
+- [x] Tests to add (and why each fails today):
   - Using `httpx.MockTransport`: the request carries `max_tokens` and a timeout, there are no tool fields, and a timeout gives 502.
   - A letter containing a URL causes exactly one outbound request, to the configured endpoint (SSRF).
   - An unknown provider fails at `create_app()`.
-- [ ] Automated verification: same command as Phase 1.
-- [ ] Manual verification: run against a local model server, and read the logs to confirm no letter text appears.
-- [ ] Threat-model controls implemented: LLM06, LLM10 (model timeout and token cap), SSRF, data flow to models.
+- [x] Automated verification: same command as Phase 1.
+- [ ] Manual verification: run against a local model server, and read the logs to confirm no letter text appears. (Not run; no model server here. Left unticked for the human.)
+- [x] Threat-model controls implemented: LLM06, LLM10 (model timeout and token cap), SSRF, data flow to models.
 
 ## Phase 6: HTMX page and container
 
@@ -284,6 +284,14 @@ Runnable: the page works on a phone against the deployed container.
 - `client_ip` takes the peer if untrusted, else the right-most untrusted `X-Forwarded-For` entry; if all are trusted it returns the peer. Entries are compared as strings, not CIDR ranges.
 - Dockerfile needed no change (`--proxy-headers` was never used).
 - Tests were written before `limits.py` and the `main.py` edit, but I did not run a separate red step (they fail on import by construction). I formatted only `src` and `tests/unit`, so the holdout file is untouched.
+
+### Phase 5
+- `OpenAICompatLLM` posts one user message (the full built prompt) to `<LLM_BASE_URL>/chat/completions` with `model`, `max_tokens`, `stream: false`. No tool fields. Any `httpx.HTTPError` (including non-2xx and timeouts) or malformed envelope gives `ModelUnavailable` (502, fixed message).
+- The client is built with `follow_redirects=False` and `trust_env=False`, so a redirect cannot send the prompt elsewhere and proxy env vars are ignored. A 3xx is treated as an error.
+- `openai_compat` without `LLM_BASE_URL` or `LLM_MODEL` raises `ConfigError` at `create_app()`. Unknown providers already failed at startup.
+- `httpx` moved from the dev group to runtime dependencies; `uv.lock` refreshed (no new packages).
+- The base URL is operator config and is not validated beyond being non-empty; plain `http://` is allowed because the endpoint is local.
+- Tests were written first and failed on collection (no `OpenAICompatLLM`), then passed. Not run against a real model server.
 
 ## Decisions (owner)
 
