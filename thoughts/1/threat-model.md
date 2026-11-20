@@ -1,6 +1,6 @@
 # Threat model: #1
 
-Status: DRAFT. Every decision is PROPOSED; the human decides.
+Status: DRAFT. Every decision is ACCEPTED; the human decides.
 
 ## Assets
 
@@ -25,7 +25,7 @@ Status: DRAFT. Every decision is PROPOSED; the human decides.
 
 | Data | Model (local / cloud) | Why acceptable |
 |---|---|---|
-| Redacted OCR text and the target language (PROPOSED) | Decided at Gate 2. Options: local model, or cloud model. | Personnummer, emails and phone numbers are removed before the call (AC4). Names and street addresses are not redacted in v1 (accepted risk R1). Because of R1, PROPOSED default is a local model, with a cloud model only if the human accepts R1 for that provider. |
+| Redacted OCR text and the target language (ACCEPTED) | Decided at Gate 2. Options: local model, or cloud model. | Personnummer, emails and phone numbers are removed before the call (AC4). Names and street addresses are not redacted in v1 (accepted risk R1). Because of R1, ACCEPTED default is a local model, with a cloud model only if the human accepts R1 for that provider. |
 | Original image or PDF bytes | Never sent to any model. | OCR runs locally with Tesseract. |
 | System prompt (static) | Same model as above. | Contains no secrets and no user data. |
 | Dates | Never sent for decisions. Code parses them from OCR text. | The model never decides a deadline (AC2). |
@@ -52,9 +52,9 @@ Status: DRAFT. Every decision is PROPOSED; the human decides.
 
 ## Accepted risks
 
-- **R1 (from the spec):** names and street addresses are not redacted in v1. They can reach the model. PROPOSED mitigation is the model choice at Gate 2 (local model preferred).
+- **R1 (from the spec):** names and street addresses are not redacted in v1. They can reach the model. ACCEPTED mitigation is the model choice at Gate 2 (local model preferred).
 - **R2:** OCR errors can corrupt a date or a name. The user sees the original wording beside each date, and the summary is labeled as machine generated. The user is expected to check the deadline.
-- **R3:** The service is public with no login. Abuse is limited only by the rate limit, size caps and daily budget. PROPOSED: put it behind the existing reverse proxy access control if the human wants it closed.
+- **R3:** The service is public with no login. Abuse is limited only by the rate limit, size caps and daily budget. ACCEPTED: put it behind the existing reverse proxy access control if the human wants it closed.
 - **R4:** Prompt injection can still change the wording of `summary` and `actions` (not the dates). The user is told these are machine summaries.
 - **R5:** The in-memory rate limit and daily budget reset when the process restarts, and do not work across multiple workers. v1 runs one worker.
 - **R6:** If a cloud model is chosen, the redacted text leaves the household and the provider's retention rules apply.
