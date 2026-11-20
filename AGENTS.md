@@ -2,11 +2,11 @@
 
 ## What this repo is
 
-<One paragraph written at Gate 1: the app, the named user, what v1 does. Until then, read thoughts/<issue>/spec.md.>
+brevkoll decodes Swedish letters for parents who are still learning Swedish. A user uploads a photo or PDF, Tesseract reads it, a local model summarises it and lists the actions, and code (never the model) extracts the dates and builds an `.ics` file. Nothing is stored. The spec, threat model and plan are in `thoughts/1/`; the README has the run commands and every env var.
 
 ## Stack and commands
 
-- Python 3.12, FastAPI, HTMX, SQLite. Package manager: uv.
+- Python 3.12, FastAPI, Jinja templates, a vendored htmx. No database. Tesseract and poppler for OCR. Package manager: uv.
 - Install: `uv sync`
 - Lint and format: `uv run ruff check . && uv run ruff format --check .`
 - Types: `uv run pyright`
