@@ -7,6 +7,7 @@ import httpx
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
 
 from app.config import ConfigError, Settings, load_settings
 from app.decode import OcrEngine
@@ -15,12 +16,16 @@ from app.limits import BudgetedLLM, DailyBudget, SlidingWindowLimiter, client_ip
 from app.llm import FakeLLM, LLMClient, OpenAICompatLLM
 from app.ocr import TesseractOcr
 from app.routes import build_router
+from app.ui import STATIC_DIR, UI_DECODE_PATH, render_error
 from app.upload import MAX_BYTES
 
 _BODY_SLACK = 64 * 1024  # multipart overhead on top of the file limit
+_DECODE_PATHS = ("/api/decode", UI_DECODE_PATH)
 
 
-def _error(status: int, message: str) -> JSONResponse:
+def _error(request: Request, status: int, message: str) -> Response:
+    if request.url.path == UI_DECODE_PATH:
+        return render_error(request, status, message)
     return JSONResponse({"error": message}, status_code=status)
 
 
@@ -56,33 +61,35 @@ def create_app(
         )
     )
 
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
     @app.middleware("http")
     async def limit_body(
         request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
-        if request.method == "POST" and request.url.path == "/api/decode":
+        if request.method == "POST" and request.url.path in _DECODE_PATHS:
             peer = request.client.host if request.client else None
             forwarded = request.headers.get("x-forwarded-for")
             try:
                 limiter.check(client_ip(peer, forwarded, settings.trusted_proxies))
             except RateLimited as exc:
-                return _error(exc.status_code, exc.message)
+                return _error(request, exc.status_code, exc.message)
         declared = request.headers.get("content-length", "")
         if declared.isdigit() and int(declared) > MAX_BYTES + _BODY_SLACK:
-            return _error(TooLarge.status_code, TooLarge.message)
+            return _error(request, TooLarge.status_code, TooLarge.message)
         return await call_next(request)
 
     @app.exception_handler(AppError)
-    async def app_error(request: Request, exc: AppError) -> JSONResponse:
-        return _error(exc.status_code, exc.message)
+    async def app_error(request: Request, exc: AppError) -> Response:
+        return _error(request, exc.status_code, exc.message)
 
     @app.exception_handler(RequestValidationError)
-    async def invalid(request: Request, exc: RequestValidationError) -> JSONResponse:
-        return _error(InvalidRequest.status_code, InvalidRequest.message)
+    async def invalid(request: Request, exc: RequestValidationError) -> Response:
+        return _error(request, InvalidRequest.status_code, InvalidRequest.message)
 
     @app.exception_handler(Exception)
-    async def unexpected(request: Request, exc: Exception) -> JSONResponse:
-        return _error(500, "Internal error")
+    async def unexpected(request: Request, exc: Exception) -> Response:
+        return _error(request, 500, "Internal error")
 
     return app
 

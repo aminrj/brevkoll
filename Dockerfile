@@ -7,8 +7,12 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 COPY src ./src
-RUN useradd --create-home --uid 10001 app
+RUN useradd --create-home --uid 10001 app \
+    && mkdir /data \
+    && chown app:app /data
 USER app
-ENV PYTHONPATH=/app/src
+ENV PYTHONPATH=/app/src \
+    APP_ENV=prod \
+    APP_DATA_DIR=/data
 EXPOSE 8000
 CMD ["/app/.venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

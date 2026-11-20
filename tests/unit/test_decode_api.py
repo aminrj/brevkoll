@@ -126,9 +126,14 @@ def test_no_cookie_and_no_cors_headers(make_client: Make) -> None:
 
 def test_route_allowlist(env: Env) -> None:
     router = build_router(ocr=FakeOcr(), llm=FakeLLM(None, None), clock=date.today)
-    assert {getattr(route, "path", "") for route in router.routes} == {"/healthz", "/api/decode"}
+    assert {getattr(route, "path", "") for route in router.routes} == {
+        "/",
+        "/healthz",
+        "/api/decode",
+        "/ui/decode",
+    }
     client = TestClient(create_app())
-    for path in ("/docs", "/redoc", "/openapi.json", "/", "/static/x", "/api/decode/1"):
+    for path in ("/docs", "/redoc", "/openapi.json", "/static/x", "/api/decode/1"):
         assert client.get(path).status_code in (404, 405), path
 
 

@@ -209,22 +209,22 @@ Runnable: `LLM_PROVIDER=openai_compat` calls the configured local endpoint.
 
 Runnable: the page works on a phone against the deployed container.
 
-- [ ] Files: `templates/index.html`, `static/htmx.min.js` (vendored), `routes.py` (`GET /`, `/static`), `Dockerfile`.
-- [ ] Types and signatures:
+- [ ] Files: `templates/index.html`, `static/htmx.min.js` (vendored), `routes.py` (`GET /`, `/static`), `Dockerfile`. (All done except `htmx.min.js`: I could not download it, see notes.)
+- [x] Types and signatures:
   ```python
   @router.get("/") def index(request: Request) -> HTMLResponse: ...
   @router.post("/ui/decode") -> HTMLResponse   # HTML fragment rendered via auto-escaped Jinja; reuses decode_letter
   ```
   The Ics download is a `data:` link or a second endpoint-less download built client-side from the `ics` string. I use a `data:text/calendar` link with a URL-encoded value, so no new route is added and the route allowlist stays small (`/`, `/static`, `/healthz`, `/api/decode`, `/ui/decode`). The page labels the output as machine generated and shows each date next to the original wording.
   Dockerfile: install `tesseract-ocr`, `tesseract-ocr-swe`, `poppler-utils` (apt, `--no-install-recommends`), set `APP_ENV=prod`, create a writable `/data` for `APP_DATA_DIR`, and keep the non-root user. Read-only root FS is a run-time flag (`docker run --read-only --tmpfs /tmp`), documented in README, not enforceable in the image.
-- [ ] Tests to add (and why each fails today):
+- [x] Tests to add (and why each fails today):
   - A summary containing `<script>` is escaped in the rendered fragment. Fails: no template.
   - The page contains no `innerHTML` or `|safe` (grep test over templates and static, excluding the vendored library).
   - `GET /` returns 200 and the file input accepts `image/*,application/pdf`.
   - Route allowlist test updated.
-- [ ] Automated verification: same command as Phase 1. Also `docker build .` (needs the human's Docker).
+- [x] Automated verification: same command as Phase 1. (`docker build .` is not run by the agent, per the owner decision.)
 - [ ] Manual verification: open the page on a phone, photograph a letter, check the result, download the `.ics`, and confirm no file remains on the server.
-- [ ] Threat-model controls implemented: LLM05 (rendering), web upload and CSRF controls, container notes.
+- [x] Threat-model controls implemented: LLM05 (rendering), web upload and CSRF controls, container notes.
 
 ## Dependencies added (Python and system)
 
@@ -292,6 +292,16 @@ Runnable: the page works on a phone against the deployed container.
 - `httpx` moved from the dev group to runtime dependencies; `uv.lock` refreshed (no new packages).
 - The base URL is operator config and is not validated beyond being non-empty; plain `http://` is allowed because the endpoint is local.
 - Tests were written first and failed on collection (no `OpenAICompatLLM`), then passed. Not run against a real model server.
+
+### Phase 6
+- BLOCKER: `src/app/static/htmx.min.js` (htmx 2.0.4) is NOT in the commit. The sandbox denied the download (`curl` to unpkg) and I will not hand-write or guess a copy. The human must add the real file, e.g. `curl -o src/app/static/htmx.min.js https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js`, and check its hash. Until then the page still works as a plain form post (the form has `action="/ui/decode"`), but shows only the bare result fragment. No test asserts the file exists.
+- `/ui/decode` shares the rate limit and body-size guard with `/api/decode` (the middleware covers both paths). Errors on `/ui/decode` render a small HTML error fragment with the real status code; the page's `htmx-config` meta tag makes htmx swap non-2xx responses, so errors show up without JavaScript of our own.
+- `/static` is a `StaticFiles` mount on the app, so it is not in the router route set. The route allowlist test now expects `/`, `/healthz`, `/api/decode`, `/ui/decode` and still checks 404 for the docs paths and an unknown static file.
+- The `.ics` is a `data:text/calendar` link built with Jinja's `urlencode`; no new route. Some mobile browsers handle `data:` downloads poorly; check on a phone.
+- Added `static/style.css` (small, mobile layout). Jinja autoescape is on; the grep test forbids `innerHTML`, `|safe` and `eval(` in templates and our own static files.
+- Dockerfile: `APP_ENV=prod`, `APP_DATA_DIR=/data` (owned by the non-root user). README documents the read-only run flags. Docker build not run.
+- The unsafe-pattern test excludes `htmx.min.js` by name, so it passes whether or not the file is present.
+- Tests were written first; they failed (404s, missing templates) before the code, then passed. The 1 skipped test is the Tesseract integration test (binary absent here).
 
 ## Decisions (owner)
 
