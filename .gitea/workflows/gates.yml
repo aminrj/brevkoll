@@ -57,11 +57,17 @@ jobs:
           $S apt-get update -q && $S apt-get install -y -q tesseract-ocr tesseract-ocr-swe poppler-utils
       - run: uv sync --frozen
       - name: Fetch the base branch
-        run: git fetch origin "${{ github.base_ref }}"
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: git fetch origin "$BASE_REF"
       - name: Holdout and workflow guard
-        run: bash scripts/check-holdout-guard.sh "origin/${{ github.base_ref }}"
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: bash scripts/check-holdout-guard.sh "origin/$BASE_REF"
       - name: New tests must fail on the base code
-        run: bash scripts/check-tests-fail-before-patch.sh "origin/${{ github.base_ref }}"
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: bash scripts/check-tests-fail-before-patch.sh "origin/$BASE_REF"
 
   security:
     runs-on: ubuntu-latest
