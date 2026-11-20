@@ -1,0 +1,24 @@
+<article>
+  <p class="warning">Machine generated. Check the original letter before you rely on this.</p>
+  <h2>Summary</h2>
+  <p>{{ result.summary }}</p>
+  {% if result.actions %}
+  <h2>What to do</h2>
+  <ul>
+    {% for action in result.actions %}
+    <li>{{ action }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  <h2>Dates</h2>
+  {% if result.dates %}
+  <ul>
+    {% for item in result.dates %}
+    <li><strong>{{ item.date }}</strong> <q>{{ item.description }}</q> <small>(from the letter)</small></li>
+    {% endfor %}
+  </ul>
+  <p><a href="data:text/calendar;charset=utf-8,{{ result.ics | urlencode }}" download="letter.ics">Download calendar file (.ics)</a></p>
+  {% else %}
+  <p>No dates found in the letter.</p>
+  {% endif %}
+</article>

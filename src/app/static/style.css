@@ -1,0 +1,9 @@
+body { font-family: system-ui, sans-serif; margin: 0; line-height: 1.5; }
+main { max-width: 40rem; margin: 0 auto; padding: 1rem; }
+label, input, select, button { display: block; width: 100%; box-sizing: border-box; margin-top: 0.75rem; font-size: 1rem; }
+button { padding: 0.75rem; }
+.htmx-indicator { display: none; }
+.htmx-request .htmx-indicator, .htmx-request.htmx-indicator { display: block; }
+.warning { background: #fff3cd; padding: 0.5rem; border-radius: 0.25rem; }
+.error { background: #f8d7da; padding: 0.5rem; border-radius: 0.25rem; }
+.note { font-size: 0.85rem; color: #555; }

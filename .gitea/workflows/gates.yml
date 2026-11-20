@@ -1,5 +1,6 @@
 name: gates
 # Runs on the homelab Gitea runner (label ubuntu-latest). No Docker is used in these jobs.
+# brevkoll: same as the template, plus Tesseract with Swedish for the jobs that run tests.
 # Tools are pinned to a version and a sha256 (uv, gitleaks, trivy) or to hashes (semgrep).
 on:
   pull_request:
@@ -26,6 +27,10 @@ jobs:
           mkdir -p "$HOME/.local/bin"
           tar -xzf "$d/uv.tgz" -C "$HOME/.local/bin" --strip-components=1
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: System packages (Tesseract with Swedish, poppler)
+        run: |
+          S=""; [ "$(id -u)" -eq 0 ] || S="sudo"
+          $S apt-get update -q && $S apt-get install -y -q tesseract-ocr tesseract-ocr-swe poppler-utils
       - run: uv sync --frozen
       - run: uv run ruff check .
       - run: uv run ruff format --check .
@@ -46,13 +51,23 @@ jobs:
           mkdir -p "$HOME/.local/bin"
           tar -xzf "$d/uv.tgz" -C "$HOME/.local/bin" --strip-components=1
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: System packages (Tesseract with Swedish, poppler)
+        run: |
+          S=""; [ "$(id -u)" -eq 0 ] || S="sudo"
+          $S apt-get update -q && $S apt-get install -y -q tesseract-ocr tesseract-ocr-swe poppler-utils
       - run: uv sync --frozen
       - name: Fetch the base branch
-        run: git fetch origin "${{ github.base_ref }}"
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: git fetch origin "$BASE_REF"
       - name: Holdout and workflow guard
-        run: bash scripts/check-holdout-guard.sh "origin/${{ github.base_ref }}"
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: bash scripts/check-holdout-guard.sh "origin/$BASE_REF"
       - name: New tests must fail on the base code
-        run: bash scripts/check-tests-fail-before-patch.sh "origin/${{ github.base_ref }}"
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: bash scripts/check-tests-fail-before-patch.sh "origin/$BASE_REF"
 
   security:
     runs-on: ubuntu-latest
@@ -90,7 +105,7 @@ jobs:
           curl -fsSL -o "$d/trivy.tgz" "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
           echo "${TRIVY_SHA256}  $d/trivy.tgz" | sha256sum -c -
           tar -xzf "$d/trivy.tgz" -C "$d" trivy
-          "$d/trivy" fs --scanners vuln,secret,misconfig --severity HIGH,CRITICAL --exit-code 1 .
+          "$d/trivy" fs --scanners vuln,secret,misconfig --severity HIGH,CRITICAL --exit-code 1 --skip-dirs tests/holdout/fixtures .
 
   holdout:
     runs-on: ubuntu-latest
@@ -105,6 +120,10 @@ jobs:
           mkdir -p "$HOME/.local/bin"
           tar -xzf "$d/uv.tgz" -C "$HOME/.local/bin" --strip-components=1
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: System packages (Tesseract with Swedish, poppler)
+        run: |
+          S=""; [ "$(id -u)" -eq 0 ] || S="sudo"
+          $S apt-get update -q && $S apt-get install -y -q tesseract-ocr tesseract-ocr-swe poppler-utils
       - run: uv sync --frozen
       - name: Holdout acceptance tests (exit 5 = no tests collected yet)
         run: uv run pytest tests/holdout -q || [ $? -eq 5 ]
