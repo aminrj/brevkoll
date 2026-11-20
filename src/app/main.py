@@ -1,6 +1,7 @@
 import os
+import time
 from collections.abc import Awaitable, Callable
-from datetime import date
+from datetime import date, datetime
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -8,7 +9,8 @@ from fastapi.responses import JSONResponse, Response
 
 from app.config import ConfigError, Settings, load_settings
 from app.decode import OcrEngine
-from app.errors import AppError, InvalidRequest, TooLarge
+from app.errors import AppError, InvalidRequest, RateLimited, TooLarge
+from app.limits import BudgetedLLM, DailyBudget, SlidingWindowLimiter, client_ip
 from app.llm import FakeLLM, LLMClient
 from app.ocr import TesseractOcr
 from app.routes import build_router
@@ -36,7 +38,9 @@ def create_app(
     clock: Callable[[], date] | None = None,
 ) -> FastAPI:
     settings = load_settings(os.environ)
-    llm_client = llm if llm is not None else _build_llm(settings)
+    budget = DailyBudget(settings.daily_model_call_budget, datetime.now)
+    llm_client = BudgetedLLM(llm if llm is not None else _build_llm(settings), budget)
+    limiter = SlidingWindowLimiter(settings.rate_limit_per_minute, time.monotonic)
     app = FastAPI(title="app", docs_url=None, redoc_url=None, openapi_url=None)
     app.include_router(
         build_router(
@@ -50,6 +54,13 @@ def create_app(
     async def limit_body(
         request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
+        if request.method == "POST" and request.url.path == "/api/decode":
+            peer = request.client.host if request.client else None
+            forwarded = request.headers.get("x-forwarded-for")
+            try:
+                limiter.check(client_ip(peer, forwarded, settings.trusted_proxies))
+            except RateLimited as exc:
+                return _error(exc.status_code, exc.message)
         declared = request.headers.get("content-length", "")
         if declared.isdigit() and int(declared) > MAX_BYTES + _BODY_SLACK:
             return _error(TooLarge.status_code, TooLarge.message)

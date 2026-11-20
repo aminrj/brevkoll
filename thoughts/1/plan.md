@@ -161,8 +161,8 @@ Runnable: the fixture letter text yields `2026-12-04` and `2026-12-11`, and `ics
 
 Runnable: the 4th request in a minute returns 429 with `RATE_LIMIT_PER_MINUTE=3`.
 
-- [ ] Files: `limits.py`, `routes.py` and `main.py` (dependencies), `Dockerfile` (`--proxy-headers` is NOT used; the app does its own IP logic).
-- [ ] Types and signatures:
+- [x] Files: `limits.py`, `routes.py` and `main.py` (dependencies), `Dockerfile` (`--proxy-headers` is NOT used; the app does its own IP logic).
+- [x] Types and signatures:
   ```python
   class SlidingWindowLimiter:
       def __init__(self, per_minute: int, clock: Callable[[], float]) -> None: ...
@@ -177,13 +177,13 @@ Runnable: the 4th request in a minute returns 429 with `RATE_LIMIT_PER_MINUTE=3`
   def client_ip(peer: str | None, forwarded_for: str | None, trusted: Sequence[str]) -> str: ...
   ```
   The rate limiter runs before the body is read. It prunes old keys so the dict stays bounded. The budget is consumed just before the model call.
-- [ ] Tests to add (and why each fails today):
+- [x] Tests to add (and why each fails today):
   - `tests/unit/test_limits.py`: the 4th call within a minute raises, and the window slides (injected clock). The budget is exhausted after N calls, the next gets 503, and it resets the next day. Fails: no module.
   - `client_ip`: a spoofed `X-Forwarded-For` from an untrusted peer is ignored, and a trusted peer's header is honored (uses the right-most untrusted entry). Fails: no function.
   - API test: `RATE_LIMIT_PER_MINUTE=3` gives 429 on the 4th (AC8), and a fresh `create_app()` has a fresh limiter. The model is not called when the budget is exhausted.
-- [ ] Automated verification: same command as Phase 1.
-- [ ] Manual verification: run with `RATE_LIMIT_PER_MINUTE=3` and `for i in 1..4; do curl ...; done`.
-- [ ] Threat-model controls implemented: LLM10 (rate limit, daily budget), rate-limit bypass, AC8.
+- [x] Automated verification: same command as Phase 1.
+- [ ] Manual verification: run with `RATE_LIMIT_PER_MINUTE=3` and `for i in 1..4; do curl ...; done`. (Not run live; covered by `test_limits_api.py`. Left unticked for the human.)
+- [x] Threat-model controls implemented: LLM10 (rate limit, daily budget), rate-limit bypass, AC8.
 
 ## Phase 5: Real model provider (BLOCKED on Q1)
 
@@ -275,6 +275,15 @@ Runnable: the page works on a phone against the deployed container.
 - Each ICS event has `SUMMARY` = the letter's wording and `DESCRIPTION` = model summary and actions (escaped). Model text never feeds a date.
 - Two Phase 1 assertions that pinned `dates == []` were updated. The year-less "11 december" in the shared fixture depends on the real clock, so the API test checks only the count and the explicit ISO date.
 - Tests were written first and failed on collection (no `app.dates`), then passed. Two ICS tests were first too strict (they counted `BEGIN:VEVENT` inside an escaped text line) and now count logical lines.
+
+### Phase 4
+- The rate limiter runs in the existing HTTP middleware (POST `/api/decode` only), not a FastAPI dependency, because FastAPI parses the body before dependencies run. It rejects before the body is read.
+- The budget is applied by `BudgetedLLM` (in `limits.py`), a wrapper around any `LLMClient`, so it also covers injected clients. It is consumed just before each model call; a failed model call still counts.
+- `SlidingWindowLimiter.size()` was added for the prune test. Expired keys are swept once the table passes 1024 keys. Under many distinct client IPs within one minute the table can still grow; it is not hard-capped.
+- The budget day rolls over using `datetime.now` (server local time). Counters are per process, like the rate limit (R5).
+- `client_ip` takes the peer if untrusted, else the right-most untrusted `X-Forwarded-For` entry; if all are trusted it returns the peer. Entries are compared as strings, not CIDR ranges.
+- Dockerfile needed no change (`--proxy-headers` was never used).
+- Tests were written before `limits.py` and the `main.py` edit, but I did not run a separate red step (they fail on import by construction). I formatted only `src` and `tests/unit`, so the holdout file is untouched.
 
 ## Decisions (owner)
 
