@@ -7,3 +7,12 @@ Gate 1 artifacts are on branch `agent/issue-N`: `thoughts/N/spec.md` and `tests/
 ## Comment by amine (2026-11-20T08:50:06Z)
 
 /go minutes=90
+
+## Comment by amine (2026-11-20T09:32:36Z)
+
+/go 
+I updated the threat-model file.
+
+## Comment by amine (2026-11-20T10:17:33Z)
+
+/go minutes=10
