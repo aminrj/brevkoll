@@ -19,7 +19,7 @@ Status: DRAFT. Every decision is ACCEPTED; the human decides.
 4. Environment configuration (`LLM_PROVIDER`, `FAKE_LLM_*`, `APP_DATA_DIR`, `RATE_LIMIT_PER_MINUTE`). Trusted, but the `fake` provider must not be selectable in production by accident.
 5. Tesseract and PDF rasterizer subprocesses. They parse hostile files.
 6. Browser to server: the HTMX page and the `.ics` download. The response text is rendered in the DOM.
-7. Reverse proxy at `brevkoll.lab.aminrj.com`. Client IP comes from it, so rate limiting depends on how it forwards the IP.
+7. Reverse proxy at the app's lab address. Client IP comes from it, so rate limiting depends on how it forwards the IP.
 
 ## Data flow to models
 

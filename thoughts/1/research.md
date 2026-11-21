@@ -73,7 +73,7 @@ No code exists for these paths yet, so each is a future entry point taken from t
 4. **Dependencies:** May the plan add Pillow, a PDF rasterizer or reader (which one: `pdf2image` plus poppler, PyMuPDF, or `pypdf`), `pytesseract` (or direct `subprocess`), and `httpx` as a runtime dependency? Is a hand-written ICS builder acceptable instead of `icalendar`?
 5. **Languages:** Which ISO 639-1 codes go in the allowlist? The spec only says "the two".
 6. **Access control:** Should the service stay public (R3), or sit behind proxy auth? This changes the rate-limit design.
-7. **Proxy IP:** What IP or CIDR does the reverse proxy for `brevkoll.lab.aminrj.com` use, and does it set `X-Forwarded-For`? This sets `TRUSTED_PROXIES`.
+7. **Proxy IP:** What IP or CIDR does the reverse proxy for the app's lab address use, and does it set `X-Forwarded-For`? This sets `TRUSTED_PROXIES`.
 8. **Budget:** Is a call-count daily budget enough, and what default for `DAILY_MODEL_CALL_BUDGET`?
 9. **Dates without a year:** The threat model injects a clock for `4/12`. Should a year-less date resolve to the next occurrence, or the current year?
 10. **Frontend:** Is the HTMX page in scope for this issue, or only the API? The spec's user flow and sketch include a page. How should the HTMX asset be delivered (vendored file or CDN)?

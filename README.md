@@ -11,7 +11,13 @@ learning Swedish. Nothing about the letter is kept.
    before anything is sent to the model.
 3. A local language model returns a summary and a list of actions as validated JSON.
 4. Dates are found in the letter text by code, never by the model. They are returned with the letter's own wording, and
-   as an `.ics` file with one all-day event per date.
+   as an `.ics` file with one all-day event per date. The page shows the weekday beside each date, computed in code, in
+   the answer language (`/api/decode` is unchanged). The page lists "What to do" first, then the dates, then the summary.
+
+The page works on a phone, starts in the system light or dark setting, and makes no external requests. A "Switch dark /
+light" control flips it, in CSS only: the choice is not remembered after a reload. The button
+disables and a wait message shows while the letter is read. Every response carries a strict
+Content-Security-Policy, and the page loads nothing off-origin.
 
 Endpoints: `GET /` (page), `POST /ui/decode` (page form), `POST /api/decode` (multipart fields `file` and `language`),
 `GET /healthz`. There are no accounts, cookies, sessions or stored data.
@@ -62,7 +68,8 @@ Run one worker only: the rate limit and the daily budget live in memory.
 
 ## How it was built
 
-Built through the software factory. The spec, threat model, research, plan and validation report are in `thoughts/1/`.
+Built through the software factory. The spec, threat model, research, plan and validation report for v1 are in `thoughts/1/`,
+and each later change has its own folder (`thoughts/15/`: the page refresh and the theme switch).
 Acceptance tests are in `tests/holdout/`. Rules for coding agents are in `AGENTS.md`.
 
 ## Quality guards

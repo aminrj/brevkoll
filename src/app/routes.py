@@ -60,6 +60,6 @@ def build_router(
         file: Annotated[UploadFile, File()],
         language: Annotated[str, Form()] = "en",
     ) -> HTMLResponse:
-        return render_result(request, await run(file, language))
+        return render_result(request, await run(file, language), language)
 
     return router

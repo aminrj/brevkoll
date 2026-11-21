@@ -21,6 +21,10 @@ from app.upload import MAX_BYTES
 
 _BODY_SLACK = 64 * 1024  # multipart overhead on top of the file limit
 _DECODE_PATHS = ("/api/decode", UI_DECODE_PATH)
+CSP = (
+    "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; "
+    "connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+)
 
 
 def _error(request: Request, status: int, message: str) -> Response:
@@ -81,6 +85,14 @@ def create_app(
         if declared.isdigit() and int(declared) > MAX_BYTES + _BODY_SLACK:
             return _error(request, TooLarge.status_code, TooLarge.message)
         return await call_next(request)
+
+    @app.middleware("http")
+    async def security_headers(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        response = await call_next(request)
+        response.headers["Content-Security-Policy"] = CSP
+        return response
 
     @app.exception_handler(AppError)
     async def app_error(request: Request, exc: AppError) -> Response:

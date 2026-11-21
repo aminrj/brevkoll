@@ -4,6 +4,12 @@ name: gates
 # Tools are pinned to a version and a sha256 (uv, gitleaks, trivy) or to hashes (semgrep).
 on:
   pull_request:
+  # The commit that gets released needs checks of its own: the merge commit on main and every release tag. The guards
+  # that compare with a base branch only make sense on a pull request and are skipped on these events. Branch
+  # protection keeps requiring the (pull_request) results; these appear as (push) results on the commit itself.
+  push:
+    branches: [main]
+    tags: ["v*"]
 
 env:
   UV_VERSION: "0.11.2"
@@ -57,14 +63,17 @@ jobs:
           $S apt-get update -q && $S apt-get install -y -q tesseract-ocr tesseract-ocr-swe poppler-utils
       - run: uv sync --frozen
       - name: Fetch the base branch
+        if: github.event_name == 'pull_request'
         env:
           BASE_REF: ${{ github.base_ref }}
         run: git fetch origin "$BASE_REF"
       - name: Holdout and workflow guard
+        if: github.event_name == 'pull_request'
         env:
           BASE_REF: ${{ github.base_ref }}
         run: bash scripts/check-holdout-guard.sh "origin/$BASE_REF"
       - name: New tests must fail on the base code
+        if: github.event_name == 'pull_request'
         env:
           BASE_REF: ${{ github.base_ref }}
         run: bash scripts/check-tests-fail-before-patch.sh "origin/$BASE_REF"
@@ -150,14 +159,20 @@ jobs:
           $S apt-get update -q && $S apt-get install -y -q tesseract-ocr tesseract-ocr-swe poppler-utils
       - run: uv sync --frozen
       - name: Fetch the base branch
+        if: github.event_name == 'pull_request'
         env:
           BASE_REF: ${{ github.base_ref }}
         run: git fetch origin "$BASE_REF"
       - name: Health metrics, ratchet, changed-line coverage, contracts, traceability, context size
+        if: github.event_name == 'pull_request'
         env:
           BASE_REF: ${{ github.base_ref }}
         run: bash scripts/quality.sh "origin/$BASE_REF"
+      - name: "Health metrics, ratchet, contracts, traceability, context size (main and tags, whole tree)"
+        if: github.event_name != 'pull_request'
+        run: QUALITY_TREE_ONLY=1 bash scripts/quality.sh
       - name: Mutation testing on changed files (limit and mode in quality/policy.toml)
+        if: github.event_name == 'pull_request'
         env:
           BASE_REF: ${{ github.base_ref }}
         run: uv run python scripts/mutation.py --base "origin/$BASE_REF" --out mutation.json

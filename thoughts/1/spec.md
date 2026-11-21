@@ -15,7 +15,7 @@ I photograph a Swedish letter and get a plain-language summary in my language, a
 
 ## User flow
 
-1. Open `brevkoll.lab.aminrj.com` on my phone.
+1. Open the app's lab address on my phone.
 2. Take a photo or pick a file (PNG, JPEG or PDF up to 10 MB). Choose the output language.
 3. Within about 20 seconds I see: summary, actions, dates, and an "Add to calendar" button that downloads an `.ics` file.
 4. I close the page. Nothing is stored on the server.
