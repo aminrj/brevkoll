@@ -6,3 +6,10 @@ __pycache__/
 secrets/
 .pytest_cache/
 .ruff_cache/
+.mutmut-cache
+health.current.json
+mutation.json
+.coverage
+.coverage.json
+.importlinter.cache
+coverage.xml

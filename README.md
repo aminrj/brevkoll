@@ -64,3 +64,10 @@ Run one worker only: the rate limit and the daily budget live in memory.
 
 Built through the software factory. The spec, threat model, research, plan and validation report are in `thoughts/1/`.
 Acceptance tests are in `tests/holdout/`. Rules for coding agents are in `AGENTS.md`.
+
+## Quality guards
+
+The `quality` CI job and `bash scripts/quality.sh origin/main` check what a green test run misses: a complexity and size ratchet
+against `quality/health.json` (it only moves toward better; a nightly job on the factory host opens a PR to tighten it),
+80% coverage on changed lines, import contracts in `.importlinter`, acceptance-criterion traceability, and the size of
+`AGENTS.md`. Mutation testing on changed files runs in warn mode. Policy: `quality/policy.toml`.

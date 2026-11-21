@@ -14,11 +14,20 @@ dev = [
     "pytest>=8",
     "ruff>=0.6",
     "pyright>=1.1.380",
+    "radon==6.0.1",
+    "coverage==7.6.10",
+    "diff-cover==9.2.1",
+    "mutmut==2.5.1",
+    "import-linter==2.1",
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["tests/unit", "tests/integration"]   # holdout runs only in CI, explicitly
+testpaths = ["tests/unit", "tests/integration", "tests/tooling"]   # holdout runs only in CI, explicitly
 pythonpath = ["src"]
+markers = [
+    "ac(id): this test enforces acceptance criterion <id> from thoughts/<n>/spec.md (checked by scripts/trace.py)",
+    "control(id): this test enforces threat-model control <id> from thoughts/<n>/threat-model.md",
+]
 
 [tool.ruff]
 line-length = 100
@@ -29,8 +38,16 @@ select = ["E", "F", "I", "B", "UP", "S", "BLE"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101"]
+"scripts/**" = ["S603", "S607"]   # dev tooling that shells out to git, mutmut and coverage
 
 [tool.pyright]
 include = ["src"]
 pythonVersion = "3.12"
 typeCheckingMode = "standard"
+
+[tool.coverage.run]
+source = ["src"]
+branch = false
+
+[tool.coverage.report]
+show_missing = true

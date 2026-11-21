@@ -127,3 +127,46 @@ jobs:
       - run: uv sync --frozen
       - name: Holdout acceptance tests (exit 5 = no tests collected yet)
         run: uv run pytest tests/holdout -q || [ $? -eq 5 ]
+
+  quality:
+    # Guards against slow decay: complexity ratchet, changed-line coverage, architecture contracts,
+    # traceability, context size, and mutation testing on changed files (warn mode at first).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with: { fetch-depth: 0 }
+      - name: Install uv (pinned, checksum verified)
+        run: |
+          set -euo pipefail
+          d="$(mktemp -d)"
+          curl -fsSL -o "$d/uv.tgz" "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-x86_64-unknown-linux-gnu.tar.gz"
+          echo "${UV_SHA256}  $d/uv.tgz" | sha256sum -c -
+          mkdir -p "$HOME/.local/bin"
+          tar -xzf "$d/uv.tgz" -C "$HOME/.local/bin" --strip-components=1
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: System packages (Tesseract with Swedish, poppler)
+        run: |
+          S=""; [ "$(id -u)" -eq 0 ] || S="sudo"
+          $S apt-get update -q && $S apt-get install -y -q tesseract-ocr tesseract-ocr-swe poppler-utils
+      - run: uv sync --frozen
+      - name: Fetch the base branch
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: git fetch origin "$BASE_REF"
+      - name: Health metrics, ratchet, changed-line coverage, contracts, traceability, context size
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: bash scripts/quality.sh "origin/$BASE_REF"
+      - name: Mutation testing on changed files (limit and mode in quality/policy.toml)
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: uv run python scripts/mutation.py --base "origin/$BASE_REF" --out mutation.json
+      - name: Keep the mutation report
+        if: always()
+        uses: actions/upload-artifact@c24449f33cd45d4826c6702db7e49f7cdb9b551d # v3.2.1-node20 (Gitea supports v3 only)
+        with:
+          name: mutation-report
+          path: |
+            mutation.json
+            health.current.json
+          if-no-files-found: ignore

@@ -4,7 +4,7 @@
 # Defense in depth with local deny rules and human review. Not a hard boundary.
 set -euo pipefail
 BASE="${1:-origin/main}"
-GUARDED='^(tests/holdout/|\.gitea/workflows/|\.claude/settings\.json)'
+GUARDED='^(tests/holdout/|\.gitea/workflows/|\.claude/settings\.json|quality/|\.importlinter$)'
 fail=0
 for c in $(git rev-list "$BASE"..HEAD); do
   if git diff-tree --no-commit-id --name-only -r "$c" | grep -qE "$GUARDED"; then
