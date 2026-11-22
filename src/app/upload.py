@@ -5,6 +5,7 @@ from fastapi import UploadFile
 from app.errors import TooLarge, UnsupportedMedia
 
 MAX_BYTES = 10 * 1024 * 1024
+MAX_PART_BYTES = 10 * 1024 * 1024
 _CHUNK = 64 * 1024
 
 Kind = Literal["png", "jpeg", "pdf"]

@@ -55,6 +55,15 @@ def test_exactly_at_limit_is_accepted(make_client: Callable[..., TestClient]) ->
     assert post(make_client(), PNG + b"\x00" * (MAX_BYTES - len(PNG))).status_code == 200
 
 
+def test_form_parser_allows_up_to_max_bytes(make_client: Callable[..., TestClient]) -> None:
+    """Request._get_form must default max_part_size to MAX_BYTES."""
+    from starlette.requests import Request as StarletteRequest
+
+    sig = __import__("inspect").signature(StarletteRequest._get_form)
+    default = sig.parameters["max_part_size"].default
+    assert default == MAX_BYTES
+
+
 def test_traversal_filename_creates_nothing(
     make_client: Callable[..., TestClient], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

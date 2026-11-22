@@ -3,10 +3,12 @@ import time
 from collections.abc import Awaitable, Callable
 from datetime import date, datetime
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
+from starlette.datastructures import FormData
+from starlette.requests import Request as StarletteRequest
 
 from app.config import ConfigError, Settings, load_settings
 from app.decode import OcrEngine
@@ -16,7 +18,35 @@ from app.llm import FakeLLM, LLMClient, OpenAICompatLLM, model_http_client
 from app.ocr import TesseractOcr
 from app.routes import build_router
 from app.ui import STATIC_DIR, UI_DECODE_PATH, render_error
-from app.upload import MAX_BYTES
+from app.upload import MAX_BYTES, MAX_PART_BYTES
+
+# Re-export Request for type hints; the actual class is patched at module load.
+Request = StarletteRequest
+
+
+def _patch_request() -> None:
+    """Patch StarletteRequest to allow files up to MAX_PART_BYTES."""
+    original_get_form = StarletteRequest._get_form
+
+    async def _get_form(
+        self,
+        *,
+        max_files: int | float = 1000,
+        max_fields: int | float = 1000,
+        max_part_size: int = MAX_PART_BYTES,
+    ) -> FormData:
+        return await original_get_form(
+            self,
+            max_files=max_files,
+            max_fields=max_fields,
+            max_part_size=max_part_size,
+        )
+
+    StarletteRequest._get_form = _get_form
+
+
+_patch_request()
+
 
 _BODY_SLACK = 64 * 1024  # multipart overhead on top of the file limit
 _DECODE_PATHS = ("/api/decode", UI_DECODE_PATH)
