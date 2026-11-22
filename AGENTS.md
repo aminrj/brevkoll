@@ -2,15 +2,16 @@
 
 ## What this repo is
 
-brevkoll decodes Swedish letters for parents who are still learning Swedish. A user uploads a photo or PDF, Tesseract reads it, a local model summarises it and lists the actions, and code (never the model) extracts the dates and builds an `.ics` file. Nothing is stored. The spec, threat model and plan are in `thoughts/1/`; the README has the run commands and every env var.
+brevkoll decodes Swedish letters for parents who are still learning Swedish. A user uploads a photo or PDF, Tesseract reads it, a local model summarises it and lists the actions, and code (never the model) extracts the dates and builds an `.ics` file. Nothing is stored. `deploy/base` is a public, host-free Kustomize base that a GitOps overlay extends. The spec, threat model and plan are in `thoughts/1/`; the README has the run commands and every env var.
 
 ## Stack and commands
 
 - Python 3.12, FastAPI, Jinja templates, a vendored htmx. No database. Tesseract and poppler for OCR. Package manager: uv.
+  Dev-only: `trustme` (throwaway certificates for the mTLS tests) and `pyyaml` (manifest tests).
 - Install: `uv sync`
 - Lint and format: `uv run ruff check . && uv run ruff format --check .`
 - Types: `uv run pyright`
-- Tests: `uv run pytest` (runs tests/unit and tests/integration only)
+- Tests: `uv run pytest` (runs tests/unit, tests/integration, tests/tooling and tests/deploy; not tests/holdout)
 - Run locally: `uv run fastapi dev src/app/main.py`
 - Quality guards (complexity ratchet, changed-line coverage, import contracts, traceability, context size): `bash scripts/quality.sh origin/main`.
   `quality/` and `.importlinter` are human-owned. If a guard is wrong, stop and say so; do not edit around it.

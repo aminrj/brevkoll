@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: brevkoll
+  labels:
+    app: brevkoll
+spec:
+  # One replica only: the rate limit and the daily model-call budget live in memory.
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: brevkoll
+  template:
+    metadata:
+      labels:
+        app: brevkoll
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: app
+          # No tag here: the overlay sets the tag and digest.
+          image: brevkoll
+          ports:
+            - name: http
+              containerPort: 8000
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            seccompProfile:
+              type: RuntimeDefault
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          # LLM_BASE_URL, LLM_MODEL and TRUSTED_PROXIES are set by the overlay. Without them the app
+          # stops at startup with a ConfigError, which is intended.
+          env:
+            - name: APP_ENV
+              value: prod
+            - name: APP_DATA_DIR
+              value: /data
+            - name: LLM_PROVIDER
+              value: openai_compat
+            - name: LLM_TLS_CERT_FILE
+              value: /etc/brevkoll/tls/tls.crt
+            - name: LLM_TLS_KEY_FILE
+              value: /etc/brevkoll/tls/tls.key
+            - name: LLM_TLS_CA_FILE
+              value: /etc/brevkoll/tls/ca.crt
+            - name: LLM_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: brevkoll-llm
+                  key: api-key
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: data
+              mountPath: /data
+            - name: llm-tls
+              mountPath: /etc/brevkoll/tls
+              readOnly: true
+      volumes:
+        - name: tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 256Mi
+        - name: data
+          emptyDir:
+            medium: Memory
+            sizeLimit: 64Mi
+        - name: llm-tls
+          secret:
+            secretName: brevkoll-llm
+            defaultMode: 288 # octal 0440, written in decimal
+            items:
+              - key: tls.crt
+                path: tls.crt
+              - key: tls.key
+                path: tls.key
+              - key: ca.crt
+                path: ca.crt

@@ -42,6 +42,9 @@ Container (the image sets `APP_ENV=prod` and `APP_DATA_DIR=/data`; use a read-on
 
 Run one worker only: the rate limit and the daily budget live in memory.
 
+Deploy: `deploy/base` is a hardened, host-free Kustomize base for one replica; a GitOps overlay adds the image tag, the
+model settings, the Secret, the Ingress and the network peers. See `docs/deploy.md`.
+
 ## Configuration
 
 | Variable | Default | Meaning |
@@ -49,6 +52,8 @@ Run one worker only: the rate limit and the daily budget live in memory.
 | `LLM_PROVIDER` | `fake` | `fake` (tests, dev) or `openai_compat`. `fake` is refused when `APP_ENV=prod`. |
 | `LLM_BASE_URL`, `LLM_MODEL` | none | Model endpoint and model name, required for `openai_compat`. |
 | `LLM_API_KEY` | none | Optional bearer key for the model endpoint. Read from the environment only, never logged or returned. |
+| `LLM_TLS_CERT_FILE`, `LLM_TLS_KEY_FILE` | none | Client certificate and key (PEM) for a model endpoint that requires mutual TLS. Set both or neither; each must be a readable file. Unencrypted PEM key only; loaded once at startup, so rotation needs a restart. |
+| `LLM_TLS_CA_FILE` | none | CA certificate (PEM) the model endpoint's certificate must chain to. Can be set alone. When set, only this CA is trusted (not the system store). Any `LLM_TLS_*` requires an `https://` `LLM_BASE_URL` whose host name is in the endpoint certificate's SAN. |
 | `MODEL_TIMEOUT_S` | `30` | Seconds to wait for the model (1 to 600). Models that think before answering need 120 or more. |
 | `MODEL_MAX_TOKENS` | `600` | Token cap for one answer (50 to 8000). Thinking models count their reasoning against it, so raise it with the timeout. |
 | `APP_ENV` | `dev` | Set `prod` in deployments. |

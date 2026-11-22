@@ -5,9 +5,17 @@ from typing import Annotated, Protocol
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, ValidationError
 
+from app.config import Settings
 from app.errors import BadModelOutput, ModelUnavailable
+from app.tls import model_ssl_context
 
 DEFAULT_FAKE_RESPONSE = '{"summary": "Fake summary.", "actions": ["Fake action."]}'
+
+
+def model_http_client(settings: Settings) -> httpx.Client:
+    """The HTTP client for the model: no redirects, no proxy env, mTLS context when configured."""
+    ctx = model_ssl_context(settings)
+    return httpx.Client(follow_redirects=False, trust_env=False, verify=ctx or True)
 
 
 class LLMClient(Protocol):

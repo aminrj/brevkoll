@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: brevkoll
+  labels:
+    app: brevkoll
+spec:
+  podSelector:
+    matchLabels:
+      app: brevkoll
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # No peer here on purpose: the overlay must add a from peer for the ingress controller's namespace.
+    - ports:
+        - protocol: TCP
+          port: 8000
+  egress:
+    # DNS.
+    - ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # The model front end. No peer here on purpose: the overlay must add a to peer for it.
+    - ports:
+        - protocol: TCP
+          port: 8743

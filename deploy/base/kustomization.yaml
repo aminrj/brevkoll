@@ -1,0 +1,8 @@
+# Public, host-free base. An overlay sets the image tag and digest, the namespace, the Ingress,
+# the Secret and the NetworkPolicy peers (see the Production section of the deploy doc).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - deployment.yaml
+  - service.yaml
+  - networkpolicy.yaml

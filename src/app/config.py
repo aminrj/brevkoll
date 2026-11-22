@@ -1,9 +1,12 @@
+import os
 from collections.abc import Mapping
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict, SecretStr
 
 SUPPORTED_LANGUAGES: frozenset[str] = frozenset({"en", "sv", "ar", "uk"})
+TLS_VARS: tuple[str, str, str] = ("LLM_TLS_CERT_FILE", "LLM_TLS_KEY_FILE", "LLM_TLS_CA_FILE")
 
 
 class ConfigError(ValueError):
@@ -27,6 +30,9 @@ class Settings(BaseModel):
     llm_api_key: SecretStr | None
     model_timeout_s: float
     model_max_tokens: int
+    llm_tls_cert_file: Path | None
+    llm_tls_key_file: Path | None
+    llm_tls_ca_file: Path | None
 
 
 def _int(env: Mapping[str, str], key: str, default: int) -> int:
@@ -61,7 +67,25 @@ def _bounded_int(env: Mapping[str, str], key: str, default: int, low: int, high:
     return value
 
 
+def _readable_file(env: Mapping[str, str], key: str) -> Path | None:
+    raw = env.get(key)
+    if not raw:
+        return None
+    if not (Path(raw).is_file() and os.access(raw, os.R_OK)):
+        raise ConfigError(f"{key} must name a readable file")
+    return Path(raw)
+
+
+def _check_tls(env: Mapping[str, str], base_url: str | None) -> None:
+    cert, key, ca = (bool(env.get(v)) for v in TLS_VARS)
+    if cert != key:
+        raise ConfigError("LLM_TLS_CERT_FILE and LLM_TLS_KEY_FILE must be set together")
+    if (cert or ca) and base_url and urlsplit(base_url).scheme != "https":
+        raise ConfigError("LLM_BASE_URL must use https when LLM_TLS_* is set")
+
+
 def load_settings(env: Mapping[str, str]) -> Settings:
+    _check_tls(env, env.get("LLM_BASE_URL"))
     log = env.get("FAKE_LLM_LOG")
     proxies = tuple(p.strip() for p in env.get("TRUSTED_PROXIES", "").split(",") if p.strip())
     return Settings(
@@ -79,4 +103,7 @@ def load_settings(env: Mapping[str, str]) -> Settings:
         llm_api_key=SecretStr(key) if (key := env.get("LLM_API_KEY")) else None,
         model_timeout_s=_bounded_float(env, "MODEL_TIMEOUT_S", 30.0, 1.0, 600.0),
         model_max_tokens=_bounded_int(env, "MODEL_MAX_TOKENS", 600, 50, 8000),
+        llm_tls_cert_file=_readable_file(env, "LLM_TLS_CERT_FILE"),
+        llm_tls_key_file=_readable_file(env, "LLM_TLS_KEY_FILE"),
+        llm_tls_ca_file=_readable_file(env, "LLM_TLS_CA_FILE"),
     )

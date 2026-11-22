@@ -19,10 +19,12 @@ dev = [
     "diff-cover==9.2.1",
     "mutmut==2.5.1",
     "import-linter==2.1",
+    "trustme>=1.2.1",
+    "pyyaml>=6.0.3",
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["tests/unit", "tests/integration", "tests/tooling"]   # holdout runs only in CI, explicitly
+testpaths = ["tests/unit", "tests/integration", "tests/tooling", "tests/deploy"]   # holdout runs only in CI, explicitly
 pythonpath = ["src"]
 markers = [
     "ac(id): this test enforces acceptance criterion <id> from thoughts/<n>/spec.md (checked by scripts/trace.py)",
