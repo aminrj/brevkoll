@@ -1,3 +1,6 @@
+from pydantic import ValidationError
+
+
 class AppError(Exception):
     """An error with a fixed, safe message. Never put letter or model text in it."""
 
@@ -31,6 +34,39 @@ class InvalidRequest(AppError):
 class BadModelOutput(AppError):
     status_code = 502
     message = "The model returned an unusable answer."
+
+    @staticmethod
+    def _detail_from_validation(exc: ValidationError) -> str:
+        """Build a safe detail string from a Pydantic ValidationError.
+
+        The Pydantic *str* representation includes the raw input value,
+        which may contain model text.  Instead we extract only the error
+        type (e.g. *missing*, *string_type*) which is a static label
+        safe to show.
+        """
+        parts: list[str] = []
+        for err in exc.errors():
+            parts.append(err.get("type", "invalid"))
+        return "; ".join(sorted(set(parts))) if parts else "validation_failed"
+
+    def __init__(self, detail: str | ValidationError | None = None) -> None:
+        super().__init__()
+        if isinstance(detail, ValidationError):
+            detail = self._detail_from_validation(detail)
+        if detail is not None:
+            self.message = f"{self.message} {detail}"
+
+
+class ModelOutOfTokens(AppError):
+    """The model stopped at the token cap, usually a thinking model whose reasoning used the whole
+    budget (brevkoll#36: every letter failed with 'unusable answer' at a cap of 600). The message
+    names the setting, never the model's text."""
+
+    status_code = 502
+    message = (
+        "The model ran out of room before it finished answering. "
+        "The operator needs to raise MODEL_MAX_TOKENS."
+    )
 
 
 class ModelUnavailable(AppError):

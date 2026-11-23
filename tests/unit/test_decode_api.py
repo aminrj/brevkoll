@@ -141,3 +141,19 @@ def test_injected_llm_is_used(env: Env) -> None:
     llm = FakeLLM(None, '{"summary": "injected", "actions": []}')
     client = TestClient(create_app(ocr=FakeOcr(), llm=llm))
     assert post(client).json()["summary"] == "injected"
+
+
+def test_ac2_full_pipeline_with_four_backtick_fence(
+    make_client: Make, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """End-to-end: a 4-backtick fenced model response must parse through
+    the full decode pipeline without producing a 502."""
+    fenced = '````json\n{"summary": "Hej världen.", "actions": ["Läsa brevet"]}\n````\n'
+    monkeypatch.setenv("FAKE_LLM_RESPONSE", fenced)
+    r = post(make_client())
+    assert r.status_code == 200
+    body = r.json()
+    assert body["summary"] == "Hej världen."
+    assert body["actions"] == ["Läsa brevet"]
+    assert "dates" in body
+    assert body["ics"].startswith("BEGIN:VCALENDAR")

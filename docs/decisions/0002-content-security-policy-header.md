@@ -1,6 +1,6 @@
 # 0002. Send a Content-Security-Policy header on every response
 
-Status: proposed (needs the human's yes, threat model Q1)
+Status: accepted (the pull request that carried it was merged by the owner)
 Issue: #15   Date: 2026-11-21
 
 ## Context

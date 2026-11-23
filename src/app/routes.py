@@ -10,7 +10,7 @@ from app.config import SUPPORTED_LANGUAGES
 from app.decode import MAX_TOKENS, MODEL_TIMEOUT_S, DecodeResult, OcrEngine, decode_letter
 from app.errors import BadLanguage
 from app.llm import LLMClient
-from app.ui import render_index, render_result
+from app.ui import get_version, render_index, render_result
 from app.upload import read_limited
 
 
@@ -41,7 +41,7 @@ def build_router(
 
     @router.get("/healthz")
     def healthz() -> dict[str, str]:
-        return {"status": "ok"}
+        return {"status": "ok", "version": get_version()}
 
     @router.get("/", response_class=HTMLResponse)
     def index(request: Request) -> HTMLResponse:

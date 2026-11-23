@@ -29,6 +29,7 @@ pythonpath = ["src"]
 markers = [
     "ac(id): this test enforces acceptance criterion <id> from thoughts/<n>/spec.md (checked by scripts/trace.py)",
     "control(id): this test enforces threat-model control <id> from thoughts/<n>/threat-model.md",
+    "invariant(id): this test enforces invariant <id> from docs/architecture.md",
 ]
 
 [tool.ruff]
@@ -41,6 +42,7 @@ select = ["E", "F", "I", "B", "UP", "S", "BLE"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101"]
+"tests/tooling/**" = ["S603", "S607"]   # tooling tests drive git in a temporary repository
 "scripts/**" = ["S603", "S607"]   # dev tooling that shells out to git, mutmut and coverage
 
 [tool.pyright]

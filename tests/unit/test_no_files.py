@@ -13,16 +13,19 @@ def _assert_clean(env: Env) -> None:
     assert list(env.tmp_dir.iterdir()) == []
 
 
+# I1
 def test_empty_after_success(make_client: Make, env: Env) -> None:
     assert post(make_client()).status_code == 200
     _assert_clean(env)
 
 
+# I1
 def test_empty_after_415(make_client: Make, env: Env) -> None:
     assert post(make_client(), b"plain text").status_code == 415
     _assert_clean(env)
 
 
+# I1
 def test_empty_after_model_error(
     make_client: Make, env: Env, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -31,6 +34,7 @@ def test_empty_after_model_error(
     _assert_clean(env)
 
 
+# I1
 def test_empty_after_large_upload(make_client: Make, env: Env) -> None:
     # Big enough that the multipart parser spools to a temp file.
     assert post(make_client(), PNG + b"\x00" * (2 * 1024 * 1024)).status_code == 200

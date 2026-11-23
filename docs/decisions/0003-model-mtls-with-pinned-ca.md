@@ -1,6 +1,6 @@
 # 0003. Call the model over mutual TLS with a pinned CA, built in app.tls
 
-Status: proposed
+Status: accepted (the pull request that carried it was merged by the owner)
 Issue: #19   Date: 2026-11-21
 
 ## Context

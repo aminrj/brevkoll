@@ -8,6 +8,7 @@ from helpers import FakeOcr, post
 Make = Callable[..., TestClient]
 
 
+# I3
 def test_dates_come_from_code_not_model(make_client: Make) -> None:
     body = post(make_client()).json()
     assert [d["date"] for d in body["dates"]][0] == "2026-12-04"
@@ -16,6 +17,7 @@ def test_dates_come_from_code_not_model(make_client: Make) -> None:
     assert "850101-1234" not in json.dumps(body)
 
 
+# I3
 def test_model_claiming_other_dates_is_ignored(
     make_client: Make, monkeypatch: pytest.MonkeyPatch
 ) -> None:

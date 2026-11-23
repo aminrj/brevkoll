@@ -8,6 +8,7 @@ from helpers import FakeOcr, post
 Make = Callable[..., TestClient]
 
 
+# I6
 def test_logs_contain_no_letter_ocr_or_model_text(
     make_client: Make, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -23,6 +24,7 @@ def test_logs_contain_no_letter_ocr_or_model_text(
         assert secret not in text
 
 
+# I6
 def test_logs_contain_no_model_text_on_error(
     make_client: Make, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
 ) -> None:

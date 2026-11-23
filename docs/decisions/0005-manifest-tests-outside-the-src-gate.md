@@ -1,6 +1,6 @@
 # 0005. Manifest tests live in tests/deploy, outside the fail-before-patch gate
 
-Status: proposed
+Status: accepted (the pull request that carried it was merged by the owner)
 Issue: #19   Date: 2026-11-21
 
 ## Context

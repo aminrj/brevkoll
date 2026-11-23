@@ -14,8 +14,8 @@ from app.upload import sniff_kind
 
 log = logging.getLogger("app.decode")
 
-MAX_TOKENS = 600
-MODEL_TIMEOUT_S = 30.0
+MAX_TOKENS = 3000
+MODEL_TIMEOUT_S = 120.0
 
 
 class DateItem(BaseModel):

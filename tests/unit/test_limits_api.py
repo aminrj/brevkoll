@@ -8,6 +8,7 @@ from helpers import post
 Make = Callable[..., TestClient]
 
 
+# I8
 def test_ac8_fourth_request_gets_429(make_client: Make, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("RATE_LIMIT_PER_MINUTE", "3")
     client = make_client()
@@ -42,6 +43,7 @@ def test_spoofed_forwarded_for_does_not_bypass(
     assert r.status_code == 429
 
 
+# I8
 def test_budget_exhausted_gives_503_and_model_not_called(
     make_client: Make, env: Env, monkeypatch: pytest.MonkeyPatch
 ) -> None:

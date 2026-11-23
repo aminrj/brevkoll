@@ -1,6 +1,6 @@
 # 0004. A public, host-free deploy/base; everything network-specific lives in the overlay
 
-Status: proposed
+Status: accepted (the pull request that carried it was merged by the owner)
 Issue: #19   Date: 2026-11-21
 
 ## Context

@@ -33,6 +33,7 @@ def index(make_client: Make) -> str:
     return make_client().get("/").text
 
 
+# I7
 def test_index_loads_only_same_origin_resources(make_client: Make) -> None:
     for _, attrs in parse(index(make_client)):
         for key in URL_ATTRS:

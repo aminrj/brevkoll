@@ -16,6 +16,12 @@ brevkoll decodes Swedish letters for parents who are still learning Swedish. A u
 - Quality guards (complexity ratchet, changed-line coverage, import contracts, traceability, context size): `bash scripts/quality.sh origin/main`.
   `quality/` and `.importlinter` are human-owned. If a guard is wrong, stop and say so; do not edit around it.
 
+## Intent (the owner's, read first)
+
+- `docs/intent.md` says who brevkoll is for, its goals `G<n>` and what it must never do `N<n>`. `docs/architecture.md` has the
+  picture, where letter data goes and the invariants `I<n>`, each enforced by a test with a `# I<n>` comment. Never edit
+  `intent.md`; a change that moves the architecture updates `architecture.md` in the same pull request and says so in the plan.
+
 ## Workflow (mandatory)
 
 Every piece of work belongs to an issue on the Gitea instance. Its artifacts live in `thoughts/<issue-number>/`.

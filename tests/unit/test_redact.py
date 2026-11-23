@@ -3,6 +3,7 @@ import pytest
 from app.redact import redact
 
 
+# I2
 @pytest.mark.parametrize(
     "text",
     [
@@ -21,6 +22,7 @@ def test_personnummer_forms(text: str) -> None:
     assert out == "Nr [PERSONNUMMER] slut"
 
 
+# I2
 @pytest.mark.parametrize(
     "text",
     ["070-123 45 67", "+46 70 123 45 67", "+46701234567", "08-123 456 78"],
@@ -36,6 +38,7 @@ def test_ten_digit_mobile_without_separators_is_redacted() -> None:
     assert out in ("Ring [PHONE] nu", "Ring [PERSONNUMMER] nu")
 
 
+# I2
 @pytest.mark.parametrize(
     "text", ["anna@example.se", "anna.svensson+skola@mail.example.com", "a_b-c@x.se"]
 )

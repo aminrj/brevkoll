@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from helpers import FakeOcr, post
 
 from app.config import ConfigError
-from app.errors import ModelUnavailable
+from app.errors import ModelOutOfTokens, ModelUnavailable
 from app.llm import OpenAICompatLLM
 from app.main import create_app
 
@@ -25,6 +25,7 @@ def ok(request: httpx.Request) -> httpx.Response:
     return httpx.Response(200, json={"choices": [{"message": {"content": REPLY}}]})
 
 
+# I5
 def test_request_has_token_cap_timeout_and_no_tools() -> None:
     seen: list[httpx.Request] = []
 
@@ -67,6 +68,7 @@ def test_bad_envelope_is_model_unavailable(response: httpx.Response) -> None:
         make_llm(lambda request: response).complete("x", max_tokens=1, timeout=1.0)
 
 
+# I5
 def test_letter_url_causes_one_request_to_configured_endpoint(env: Env) -> None:
     hosts: list[str] = []
 
@@ -90,6 +92,48 @@ def test_model_timeout_gives_generic_502(env: Env) -> None:
     response = post(TestClient(app, raise_server_exceptions=False))
     assert response.status_code == 502
     assert response.json() == {"error": ModelUnavailable.message}
+
+
+def thinking_reply(finish: str, content: str) -> Callable[[httpx.Request], httpx.Response]:
+    """A thinking model's reply (brevkoll#36): the answer in `content`, the reasoning beside it."""
+    body = {
+        "choices": [
+            {
+                "finish_reason": finish,
+                "message": {
+                    "content": content,
+                    "reasoning_content": "Let me think about the letter " * 80,
+                },
+            }
+        ]
+    }
+    return lambda request: httpx.Response(200, json=body)
+
+
+@pytest.mark.parametrize("content", ["", '{"summary": "Half an ans'])
+def test_a_reply_cut_off_at_the_cap_is_out_of_tokens_not_unusable(content: str) -> None:
+    llm = make_llm(thinking_reply("length", content))
+    with pytest.raises(ModelOutOfTokens):
+        llm.complete("x", max_tokens=600, timeout=1.0)
+
+
+def test_a_thinking_reply_that_finished_is_used() -> None:
+    assert (
+        make_llm(thinking_reply("stop", REPLY)).complete("x", max_tokens=3000, timeout=1.0) == REPLY
+    )
+
+
+def test_out_of_tokens_gives_a_specific_502_and_logs_no_text(
+    env: Env, caplog: pytest.LogCaptureFixture
+) -> None:
+    app = create_app(ocr=FakeOcr(), llm=make_llm(thinking_reply("length", "")))
+    with caplog.at_level("DEBUG"):
+        response = post(TestClient(app, raise_server_exceptions=False))
+    assert response.status_code == 502
+    assert response.json() == {"error": ModelOutOfTokens.message}
+    assert "MODEL_MAX_TOKENS" in response.json()["error"]
+    assert "think about the letter" not in response.text + caplog.text  # I4, I6
+    assert any("model_out_of_tokens" in r.getMessage() for r in caplog.records)
 
 
 def test_provider_is_selected_from_env(env: Env, monkeypatch: pytest.MonkeyPatch) -> None:

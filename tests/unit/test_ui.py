@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from helpers import PNG, FakeOcr
 
 from app.main import create_app
+from app.ui import get_version
 
 Make = Callable[..., TestClient]
 
@@ -138,3 +139,16 @@ def test_page_loads_only_own_scripts_no_cdn() -> None:
     text = (SRC / "templates" / "index.html").read_text(encoding="utf-8")
     assert "http://" not in text and "https://" not in text
     assert 'src="/static/htmx.min.js"' in text
+
+
+# ── get_version ──────────────────────────────────────────────────────
+
+
+def test_get_version_prefers_env_var(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("APP_VERSION", "build-abc123")
+    assert get_version() == "build-abc123"
+
+
+def test_get_version_fallback_to_unknown(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("APP_VERSION", raising=False)
+    assert get_version() == "unknown"

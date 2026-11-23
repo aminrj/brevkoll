@@ -75,9 +75,11 @@ def test_large_date_markup_holds_only_code_dates(env: Env, monkeypatch: pytest.M
 
 def test_notice_summary_actions_dates_and_ics_present(make_client: Make) -> None:
     t = ui_post(make_client()).text
-    m = re.search(r'<p class="notice"([^>]*)>(.*?)</p>', t, re.S)
-    assert m and "Machine generated" in m.group(2)
-    assert "hidden" not in m.group(1) and "alert" not in m.group(1)
+    notices = re.findall(r'<p class="notice"([^>]*)>(.*?)</p>', t, re.S)
+    assert len(notices) >= 2, f"Expected at least 2 notices, found {len(notices)}"
+    assert "Machine generated" in notices[0][1]
+    assert "hidden" not in notices[0][0] and "alert" not in notices[0][0]
+    assert "ocr" in notices[1][1].lower() and "email" in notices[1][1].lower()
     assert "Fake summary." in t and "Fake action." in t
     assert 'href="data:text/calendar' in t
 

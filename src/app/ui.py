@@ -1,4 +1,6 @@
+import os
 from datetime import date
+from importlib import metadata
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +13,18 @@ from app.config import SUPPORTED_LANGUAGES
 from app.decode import DateItem, DecodeResult
 
 APP_DIR = Path(__file__).parent
+
+
+def get_version() -> str:
+    env = os.environ.get("APP_VERSION")
+    if env:
+        return env
+    try:
+        return metadata.version("app")
+    except metadata.PackageNotFoundError:
+        return "unknown"
+
+
 STATIC_DIR = APP_DIR / "static"
 UI_DECODE_PATH = "/ui/decode"
 
@@ -57,7 +71,7 @@ def _render(request: Request, name: str, status: int, context: dict[str, Any]) -
 
 def render_index(request: Request) -> HTMLResponse:
     languages = [(code, LANGUAGE_NAMES.get(code, code)) for code in sorted(SUPPORTED_LANGUAGES)]
-    return _render(request, "index.html", 200, {"languages": languages})
+    return _render(request, "index.html", 200, {"languages": languages, "version": get_version()})
 
 
 def render_result(request: Request, result: DecodeResult, language: str) -> HTMLResponse:
@@ -66,9 +80,10 @@ def render_result(request: Request, result: DecodeResult, language: str) -> HTML
         "dates": date_views(result.dates, language),
         "lang": language,
         "dir": "rtl" if language == "ar" else "ltr",
+        "version": get_version(),
     }
     return _render(request, "result.html", 200, context)
 
 
 def render_error(request: Request, status: int, message: str) -> HTMLResponse:
-    return _render(request, "error.html", status, {"message": message})
+    return _render(request, "error.html", status, {"message": message, "version": get_version()})

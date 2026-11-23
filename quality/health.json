@@ -4,14 +4,14 @@
     "bare_except_count": 0,
     "cast_count": 0,
     "except_exception_count": 0,
-    "line_coverage_percent": 99.48,
+    "line_coverage_percent": 99.53,
     "longest_file_lines": 94,
     "longest_function_lines": 52,
     "max_complexity": 9,
     "mean_complexity": 2.44,
     "noqa_count": 0,
     "runtime_dependency_count": 3,
-    "test_to_source_ratio": 1.42,
+    "test_to_source_ratio": 1.94,
     "type_ignore_count": 0
   }
 }

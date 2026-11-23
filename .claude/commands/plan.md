@@ -4,7 +4,7 @@ allowed-tools: Read, Grep, Glob, Write
 ---
 Issue number: $ARGUMENTS
 
-Read `thoughts/$ARGUMENTS/spec.md`, `threat-model.md` and `research.md`.
+Read `docs/intent.md`, `docs/architecture.md`, then `thoughts/$ARGUMENTS/spec.md`, `threat-model.md` and `research.md`.
 Write `thoughts/$ARGUMENTS/plan.md` using `.factory/templates/plan.md`:
 
 - Phases are vertical slices: each ends with something runnable and testable end to end.
@@ -21,6 +21,8 @@ Write `thoughts/$ARGUMENTS/plan.md` using `.factory/templates/plan.md`:
 - Fill the "Docs" section: which phase updates which part of `README.md` and `AGENTS.md`. The README must describe the app
   (what it does, how to run it, env vars, limits), never the template. If either file still has template text or the
   `<One paragraph written at Gate 1...>` placeholder, make the first phase replace it (start the README from `.factory/templates/readme-app.md`).
+- Fill "Intent and architecture impact". If the change moves a box, a trust boundary, a data path or an invariant, say so,
+  add an ADR, and make one phase update `docs/architecture.md`. Never edit `docs/intent.md`.
 - Add "What I am unsure about".
 - Leave `Status: draft` at the top. Only the human sets `Status: approved`.
 

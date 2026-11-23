@@ -1,6 +1,12 @@
 # Plan: #<n>
 Status: draft
 
+## Intent and architecture impact
+- Serves: G<n> (copy from the spec). Touches: N<n>, I<n>, or `none`.
+- Does this change a box, a trust boundary, a data path or an invariant in `docs/architecture.md`? `no`, or say which, and
+  which phase updates that file. A "yes" needs an ADR.
+- What would make this plan wrong? One sentence the reviewer can test.
+
 ## Phase 1: <slice name>
 - [ ] Files:
 - [ ] Types and signatures:

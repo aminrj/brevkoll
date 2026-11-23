@@ -1,5 +1,6 @@
 <article lang="{{ lang }}" dir="{{ dir }}" class="card">
   <p class="notice">Machine generated. Check the original letter before you rely on this.</p>
+  <p class="notice">Email addresses, phone numbers and special characters may contain OCR errors — check the original letter.</p>
   {% if result.actions %}
   <h2>What to do</h2>
   <ol class="todo">
@@ -25,4 +26,5 @@
   {% endif %}
   <h2>Summary</h2>
   <p class="summary">{{ result.summary }}</p>
+  <footer class="footer"><small>brevkoll {{ version }}</small></footer>
 </article>

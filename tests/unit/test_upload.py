@@ -33,6 +33,7 @@ def test_read_limited_rejects_over_limit() -> None:
     assert asyncio.run(read_limited(ok, max_bytes=10)) == b"a" * 10
 
 
+# I10
 def test_png_bytes_with_pdf_name_is_accepted_by_content_not_name(
     make_client: Callable[..., TestClient],
 ) -> None:
@@ -45,6 +46,7 @@ def test_pdf_name_with_text_content_is_415(make_client: Callable[..., TestClient
     assert "error" in r.json()
 
 
+# I10
 def test_one_byte_over_limit_is_413(make_client: Callable[..., TestClient]) -> None:
     r = post(make_client(), PNG + b"\x00" * (MAX_BYTES + 1 - len(PNG)))
     assert r.status_code == 413

@@ -16,6 +16,7 @@ def test_index_has_csp_header(make_client: Make) -> None:
     assert "content-security-policy" in make_client().get("/").headers
 
 
+# I7
 def test_csp_has_no_unsafe_directives(make_client: Make) -> None:
     policy = make_client().get("/").headers["content-security-policy"]
     for bad in ("unsafe-inline", "unsafe-eval", "*", "http:", "data:"):
@@ -41,6 +42,7 @@ def test_csp_on_error_and_static_responses(
     assert "content-security-policy" in limited.headers
 
 
+# I7
 def test_csp_does_not_set_cookies_or_cors(make_client: Make) -> None:
     r = make_client().get("/")
     assert "set-cookie" not in r.headers

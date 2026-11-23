@@ -18,8 +18,8 @@ REPLY = '{"summary": "Real summary.", "actions": ["Do it."]}'
 
 def test_defaults_keep_the_old_behaviour() -> None:
     s = load_settings({})
-    assert s.model_timeout_s == 30.0
-    assert s.model_max_tokens == 600
+    assert s.model_timeout_s == 120.0
+    assert s.model_max_tokens == 3000
     assert s.llm_api_key is None
 
 
@@ -103,4 +103,4 @@ def test_settings_reach_the_model_call(env: Env, monkeypatch: pytest.MonkeyPatch
 def test_unset_settings_use_the_old_constants(env: Env) -> None:
     llm = RecordingLLM()
     post(TestClient(create_app(ocr=FakeOcr(), llm=llm)))
-    assert llm.calls == [(600, 30.0)]
+    assert llm.calls == [(3000, 120.0)]

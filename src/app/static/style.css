@@ -176,3 +176,4 @@ a.button {
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+.footer { text-align: center; color: var(--muted); padding: 1rem 0; }

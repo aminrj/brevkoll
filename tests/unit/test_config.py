@@ -39,6 +39,7 @@ def test_bad_integer_is_config_error() -> None:
         load_settings({"RATE_LIMIT_PER_MINUTE": "many"})
 
 
+# I9
 def test_fake_provider_refused_in_prod(env: Env, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("APP_ENV", "prod")
     with pytest.raises(ConfigError):

@@ -54,8 +54,8 @@ model settings, the Secret, the Ingress and the network peers. See `docs/deploy.
 | `LLM_API_KEY` | none | Optional bearer key for the model endpoint. Read from the environment only, never logged or returned. |
 | `LLM_TLS_CERT_FILE`, `LLM_TLS_KEY_FILE` | none | Client certificate and key (PEM) for a model endpoint that requires mutual TLS. Set both or neither; each must be a readable file. Unencrypted PEM key only; loaded once at startup, so rotation needs a restart. |
 | `LLM_TLS_CA_FILE` | none | CA certificate (PEM) the model endpoint's certificate must chain to. Can be set alone. When set, only this CA is trusted (not the system store). Any `LLM_TLS_*` requires an `https://` `LLM_BASE_URL` whose host name is in the endpoint certificate's SAN. |
-| `MODEL_TIMEOUT_S` | `30` | Seconds to wait for the model (1 to 600). Models that think before answering need 120 or more. |
-| `MODEL_MAX_TOKENS` | `600` | Token cap for one answer (50 to 8000). Thinking models count their reasoning against it, so raise it with the timeout. |
+| `MODEL_TIMEOUT_S` | `120` | Seconds to wait for the model (1 to 600). A model that thinks before answering needs 120 or more. |
+| `MODEL_MAX_TOKENS` | `3000` | Token cap for one answer (50 to 8000). Thinking models count their reasoning against it: at 600 one such model used the whole cap thinking and returned nothing (brevkoll#36). If the model is cut off at the cap the page says so (502, "ran out of room") instead of "unusable answer". |
 | `APP_ENV` | `dev` | Set `prod` in deployments. |
 | `APP_DATA_DIR` | `data` | Scratch directory. It must be empty after every request. |
 | `RATE_LIMIT_PER_MINUTE` | `10` | Requests per minute per client IP. |

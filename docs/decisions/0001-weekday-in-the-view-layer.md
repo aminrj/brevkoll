@@ -1,6 +1,6 @@
 # 0001. The weekday is computed in the UI layer, not in DecodeResult
 
-Status: proposed
+Status: accepted (the pull request that carried it was merged by the owner)
 Issue: #15   Date: 2026-11-21
 
 ## Context

@@ -21,7 +21,7 @@ brevkoll needs an OpenAI-compatible chat endpoint and uses it for the summary an
 | `LLM_API_KEY` | Optional bearer key. |
 | `LLM_TLS_CERT_FILE`, `LLM_TLS_KEY_FILE` | Client certificate and key files (PEM). Set both or neither. |
 | `LLM_TLS_CA_FILE` | CA certificate file (PEM) for the model endpoint. Any `LLM_TLS_*` requires `https://` in `LLM_BASE_URL`. |
-| `MODEL_TIMEOUT_S`, `MODEL_MAX_TOKENS` | A model that thinks before answering needs 120 s or more and a higher token cap. |
+| `MODEL_TIMEOUT_S`, `MODEL_MAX_TOKENS` | Defaults 120 s and 3000 tokens, enough for a thinking model. Lower them only for a model that does not think. |
 
 ### Mutual TLS
 

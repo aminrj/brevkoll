@@ -1,4 +1,6 @@
 import json
+import logging
+import re
 from pathlib import Path
 from typing import Annotated, Protocol
 
@@ -6,8 +8,11 @@ import httpx
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, ValidationError
 
 from app.config import Settings
-from app.errors import BadModelOutput, ModelUnavailable
+from app.envelope import extract_content, finish_reason
+from app.errors import BadModelOutput, ModelOutOfTokens, ModelUnavailable
 from app.tls import model_ssl_context
+
+log = logging.getLogger("app.llm")
 
 DEFAULT_FAKE_RESPONSE = '{"summary": "Fake summary.", "actions": ["Fake action."]}'
 
@@ -55,19 +60,18 @@ class OpenAICompatLLM:
         try:
             response = self._http.post(self._url, json=body, headers=self._headers, timeout=timeout)
             response.raise_for_status()
-            return _extract_content(response.json())
+            envelope = response.json()
+            content = extract_content(envelope)
         except (httpx.HTTPError, ValueError):
             raise ModelUnavailable() from None
-
-
-def _extract_content(envelope: object) -> str:
-    if isinstance(envelope, dict):
-        choices = envelope.get("choices")
-        if isinstance(choices, list) and choices and isinstance(choices[0], dict):
-            message = choices[0].get("message")
-            if isinstance(message, dict) and isinstance(message.get("content"), str):
-                return message["content"]
-    raise ValueError("malformed envelope")
+        if finish_reason(envelope) == "length":
+            # Cut off at the cap: the JSON is incomplete or, for a thinking model, empty.
+            # Say so, never the text.
+            log.warning(
+                "model_out_of_tokens max_tokens=%d content_chars=%d", max_tokens, len(content)
+            )
+            raise ModelOutOfTokens()
+        return content
 
 
 class ModelOutput(BaseModel):
@@ -79,8 +83,44 @@ class ModelOutput(BaseModel):
     ]
 
 
+_FENCE_RE = re.compile(
+    r"^[ \t]*````?[A-Za-z]*[ \t]*\r?\n(.*?)\s*````?[ \t]*$", re.DOTALL | re.MULTILINE
+)
+
+
+_THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
+
+
+def _strip_markdown_fence(raw: str) -> str:
+    """Strip an optional markdown code fence from *raw* and return the inner content.
+
+    If *raw* is not wrapped in a fence the string is returned unchanged
+    (backward compatible).
+    """
+    text = _THINK_RE.sub("", raw).strip().lstrip("﻿")
+    m = _FENCE_RE.search(text)
+    if m:
+        return m.group(1)
+    return _bare_object(text)
+
+
+def _bare_object(text: str) -> str:
+    """Return the first JSON object in unfenced *text* (prose around it is dropped).
+
+    Text containing backticks is left alone: a malformed fence is rejected, not guessed at.
+    """
+    start = text.find("{")
+    if start <= 0 or "`" in text:
+        return text
+    try:
+        _, end = json.JSONDecoder().raw_decode(text, start)
+    except ValueError:
+        return text
+    return text[start:end]
+
+
 def parse_model_output(raw: str) -> ModelOutput:
     try:
-        return ModelOutput.model_validate_json(raw)
-    except ValidationError:
-        raise BadModelOutput() from None
+        return ModelOutput.model_validate_json(_strip_markdown_fence(raw))
+    except ValidationError as exc:
+        raise BadModelOutput(exc) from None
